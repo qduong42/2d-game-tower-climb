@@ -373,4 +373,151 @@ This means a fumble during a gust is always recoverable — you climb back down 
 - How long is each gust? (Current guess: 2–3 seconds.)
 - Upward-travelling wind delay between segments — creates a warning window or feels unfair?
 - How many items per round? (Starting guess: 3 items for a 3-minute round.)
-- Does the nacelle display the full required item list, or reveal one at a time?
+
+---
+
+## 10. Milestone 2 — Full game specification (3-player)
+
+**Last updated:** 2026-05-06
+
+### 10.1 Player count and room rules
+
+- **Max players per room: 3** (1 base operator + 2 climbers).
+- Player count badge shows **x/3** in the top of the game view at all times.
+- **Room locks** when the game starts (3/3 reached). No joins after that.
+- A 4th player attempting to join a full room sees a popup:
+  > *"This game is full. Would you like to create your own?"*
+  with a newly generated room code pre-filled. They can edit and join/create.
+
+### 10.2 Lobby (waiting state)
+
+- While fewer than 3 players are connected, everyone is in **cursor-party mode**: free-roaming dots, no roles, no tower.
+- Top of screen shows: **"Waiting for players: x/3"**
+- No game clock. Wind does not run.
+
+### 10.3 Game start and role assignment
+
+- When the 3rd player joins, roles are **assigned randomly**:
+  - 1× Base operator
+  - 1× Climber 1 (middle segment)
+  - 1× Climber 2 (top segment)
+- All players see a **role announcement** on screen (e.g. "You are: Base Operator") for ~3 seconds before gameplay begins.
+- Each player's role is shown persistently in the top bar alongside the x/3 count.
+
+### 10.4 Screen layouts by role
+
+**Base operator**
+- Completely different screen — no tower visible.
+- Weather dashboard: wind speed, direction, countdown to next gust.
+- Tool queue UI: select and send tools one at a time.
+- Cannot be affected by wind.
+
+**Climber 1 (middle segment)**
+- Sees their own 3 platforms (bottom, mid, top) connected by a ladder.
+- Ladder extends visually upward (implying the tower continues above).
+- Tools appear at their bottom platform when the base operator sends them.
+
+**Climber 2 (top segment)**
+- Sees their own 3 platforms connected by a ladder.
+- Top platform shows two repair components:
+  - **Blade** — right side
+  - **Generator** (drawn as a box) — left side
+- Repair list visible only to this player: which component needs which tool.
+- Tools appear at their bottom platform when Climber 1 reaches their top platform carrying the tool.
+
+### 10.5 Tool transfer chain
+
+```
+Base operator selects tool
+  → appears at Climber 1's BOTTOM platform
+
+Climber 1 picks up tool, climbs to their TOP platform
+  → tool disappears from Climber 1
+  → tool appears at Climber 2's BOTTOM platform
+
+Climber 2 picks up tool, climbs to their TOP platform
+  → stands next to the correct component (blade or generator)
+  → delivers tool → component repaired
+```
+
+- Only one item in transit per segment at a time.
+- Transfer is automatic when the carrier reaches the top platform — no button press.
+- **Delivery requires standing next to the correct component.** Wrong component = rejected, no penalty beyond wasted movement.
+
+### 10.6 Disconnect handling
+
+- Any player disconnecting mid-game triggers a **full freeze**:
+  - All movement stops.
+  - Wind pauses.
+  - Round clock pauses.
+  - Screen dims for all players.
+  - Countdown shown to all: **"[Name] disconnected — resuming in 30s or when they return"**
+- If player reconnects within 30s → game resumes from frozen state.
+- If 30s expires → game exits, all players return to lobby (same room code, roles cleared).
+- Slot does not reopen — room stays locked at 3 players throughout.
+
+### 10.7 Specification tests (user perspective)
+
+Each test describes observable behaviour from a player's point of view.
+
+#### Lobby and room filling
+
+| # | Scenario | Expected |
+|---|---|---|
+| L1 | First player joins room ABCD | Sees "Waiting for players: 1/3", free-roaming dot |
+| L2 | Second player joins same room | Both see "Waiting for players: 2/3" |
+| L3 | Third player joins | All three see role announcement, then game starts |
+| L4 | Fourth player tries to join full room | Sees popup "This game is full. Would you like to create your own?" with new code pre-filled |
+| L5 | Fourth player clicks "yes" on popup | Lobby pre-filled with new code, ready to create new room |
+
+#### Role assignment
+
+| # | Scenario | Expected |
+|---|---|---|
+| R1 | Game starts (3/3) | Each player sees their role name on screen for ~3s |
+| R2 | After announcement | Role shown persistently in top bar next to x/3 |
+| R3 | Base operator's screen | Weather dashboard, tool queue — no tower |
+| R4 | Climber 1's screen | 3 platforms, ladder, no repair list visible |
+| R5 | Climber 2's screen | 3 platforms, blade on right, generator on left, repair list visible |
+
+#### Tool transfer
+
+| # | Scenario | Expected |
+|---|---|---|
+| T1 | Base sends wrench | Wrench appears at Climber 1's bottom platform |
+| T2 | Climber 1 picks up wrench and reaches top platform | Wrench disappears from Climber 1, appears at Climber 2's bottom platform |
+| T3 | Climber 1 reaches top platform without a tool | Nothing appears at Climber 2's bottom platform |
+| T4 | Climber 2 stands next to blade with correct tool | Tool consumed, blade marked repaired |
+| T5 | Climber 2 stands next to blade with wrong tool | Rejected — tool stays in hand, no repair |
+| T6 | Climber 2 delivers wrong tool to nacelle area | Must carry back down, base resends correct tool |
+| T7 | Base tries to send second tool while first is still at Climber 1's bottom platform | Second tool queued — not sent until first clears |
+
+#### Wind mechanics
+
+| # | Scenario | Expected |
+|---|---|---|
+| W1 | Wind hits player standing on mid platform | Player knocked down to bottom platform |
+| W2 | Wind hits player on top platform | Player knocked down to mid platform |
+| W3 | Wind hits player on ladder, holds opposite key | Player stays on ladder |
+| W4 | Wind hits player on ladder, no key held | Player slides down to platform below |
+| W5 | Wind hits player carrying item on platform | Player knocked down one level, item dropped on landing platform |
+| W6 | Wind hits player carrying item on ladder | Player slides down, item drops to platform below current position |
+| W7 | Item dropped from top platform during wind | Item lands on mid platform (not bottom) |
+| W8 | Item dropped from bottom platform | Item stays on bottom platform |
+
+#### Disconnect
+
+| # | Scenario | Expected |
+|---|---|---|
+| D1 | Player disconnects mid-game | Screen dims for all, countdown "…resuming in 30s…" visible |
+| D2 | Disconnected player reconnects in time | Countdown clears, game resumes, all movement restores |
+| D3 | 30s expires without reconnect | All players returned to lobby, same room code, roles cleared |
+| D4 | 4th player tries to join during freeze | Still rejected — room is locked |
+
+#### Win / fail
+
+| # | Scenario | Expected |
+|---|---|---|
+| V1 | All required items delivered before timer | Win screen shown to all players |
+| V2 | Timer expires before all items delivered | Fail screen shown to all players |
+| V3 | Win screen shown | Room returns to lobby state (cursor party), same code |
