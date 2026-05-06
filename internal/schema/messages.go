@@ -25,6 +25,7 @@ type WelcomePayload struct {
 	YourID   string `json:"yourId"`
 	RoomCode string `json:"roomCode"`
 	TickRate int    `json:"tickRate"`
+	Color    string `json:"color"` // actual assigned color (may differ if requested color was taken)
 }
 
 type PlayerState struct {
