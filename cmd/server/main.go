@@ -37,7 +37,7 @@ func main() {
 
 	slog.Info("listening", "port", port)
 	if err := http.ListenAndServe(":"+port, mux); err != nil {
-		slog.Error("server_error", "err", err)
+		slog.Error("server_error", "err", err, "hint", "is port "+port+" already in use? set PORT=<other> to change it")
 		os.Exit(1)
 	}
 }
