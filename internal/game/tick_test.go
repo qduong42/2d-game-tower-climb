@@ -246,6 +246,59 @@ func TestTick_MidClimberCannotWin(t *testing.T) {
 	}
 }
 
+func TestTick_TopPassesToolDownToMid(t *testing.T) {
+	// TOP at MidMaxPlatform with tool passes DOWN to MID at same platform
+	state := playingState(map[string]*game.Player{
+		"mid": climber("mid", game.MidMaxPlatform, schema.ToolNone),
+		"top": topClimber("top", game.MidMaxPlatform, schema.ToolHammer),
+	})
+	next := game.Tick(state, map[string]schema.InputPayload{"top": {Keys: schema.InputKeys{Space: true}}}, 1.0/30.0)
+	if next.Players["top"].Tool != schema.ToolNone {
+		t.Errorf("TOP should have no tool after passing down, got %q", next.Players["top"].Tool)
+	}
+	if next.Players["mid"].Tool != schema.ToolHammer {
+		t.Errorf("MID should hold hammer after receiving from TOP, got %q", next.Players["mid"].Tool)
+	}
+}
+
+func TestTick_TopCannotPassDownFromNonHandoffPlatform(t *testing.T) {
+	// TOP at platform 4 (not MidMaxPlatform) cannot pass DOWN
+	state := playingState(map[string]*game.Player{
+		"top": topClimber("top", game.MidMaxPlatform+1, schema.ToolHammer),
+	})
+	next := game.Tick(state, map[string]schema.InputPayload{"top": {Keys: schema.InputKeys{Space: true}}}, 1.0/30.0)
+	if next.Players["top"].Tool != schema.ToolHammer {
+		t.Error("TOP should keep tool — can only pass down at MidMaxPlatform")
+	}
+}
+
+func TestTick_MidPassesToolDownToBase(t *testing.T) {
+	// MID at platform 0 with tool passes DOWN to BASE — tool added to BASE's inventory
+	state := playingState(map[string]*game.Player{
+		"base": baseOp("base"),
+		"mid":  climber("mid", 0, schema.ToolWrench),
+	})
+	next := game.Tick(state, map[string]schema.InputPayload{"mid": {Keys: schema.InputKeys{Space: true}}}, 1.0/30.0)
+	if next.Players["mid"].Tool != schema.ToolNone {
+		t.Errorf("MID should have no tool after returning to base, got %q", next.Players["mid"].Tool)
+	}
+	if len(next.Players["base"].HeldTools) != 1 || next.Players["base"].HeldTools[0] != schema.ToolWrench {
+		t.Errorf("BASE should have wrench in inventory, got %v", next.Players["base"].HeldTools)
+	}
+}
+
+func TestTick_MidCannotPassDownFromNonGroundPlatform(t *testing.T) {
+	// MID at platform 1 cannot pass DOWN
+	state := playingState(map[string]*game.Player{
+		"base": baseOp("base"),
+		"mid":  climber("mid", 1, schema.ToolWrench),
+	})
+	next := game.Tick(state, map[string]schema.InputPayload{"mid": {Keys: schema.InputKeys{Space: true}}}, 1.0/30.0)
+	if next.Players["mid"].Tool != schema.ToolWrench {
+		t.Error("MID should keep tool — can only pass down at platform 0")
+	}
+}
+
 func TestTick_InputsIgnoredInWaitingPhase(t *testing.T) {
 	state := game.GameState{
 		Tick: 0, Phase: schema.PhaseWaiting,

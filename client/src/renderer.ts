@@ -73,19 +73,42 @@ export class CanvasRenderer {
       ctx.fillText(label, COL_X + PLATFORM_W / 2 + 10, PLATFORM_Y[i]! + 4);
     }
 
-    // SPACE hint: MID at the handoff platform passes to TOP when TOP is also here
-    if (me.climberIndex === 0 && me.tool && me.platform === MID_MAX_PLATFORM) {
-      const top = snap.players.find(p => p.role === "climber" && p.climberIndex === 1);
-      if (top && top.platform === MID_MAX_PLATFORM) {
-        ctx.fillStyle = "#2ecc71";
+    // SPACE hints — UP: MID at handoff passes to TOP; DOWN: MID at ground returns to BASE
+    if (me.climberIndex === 0 && me.tool) {
+      if (me.platform === MID_MAX_PLATFORM) {
+        const top = snap.players.find(p => p.role === "climber" && p.climberIndex === 1);
+        if (top && top.platform === MID_MAX_PLATFORM) {
+          ctx.fillStyle = "#2ecc71";
+          ctx.font = "bold 13px monospace";
+          ctx.textAlign = "center";
+          ctx.fillText("Press SPACE to pass tool to TOP ↑", canvas.width / 2, canvas.height - 20);
+        } else {
+          ctx.fillStyle = "#aaa";
+          ctx.font = "13px monospace";
+          ctx.textAlign = "center";
+          ctx.fillText("Waiting for TOP climber to reach this level…", canvas.width / 2, canvas.height - 20);
+        }
+      } else if (me.platform === 0) {
+        ctx.fillStyle = "#e67e22";
         ctx.font = "bold 13px monospace";
         ctx.textAlign = "center";
-        ctx.fillText("Press SPACE to pass tool to TOP ↑", canvas.width / 2, canvas.height - 20);
+        ctx.fillText("Press SPACE to return tool to BASE ↓", canvas.width / 2, canvas.height - 20);
+      }
+    }
+
+    // SPACE hint — DOWN: TOP at handoff returns tool to MID
+    if (me.climberIndex === 1 && me.tool && me.platform === MID_MAX_PLATFORM) {
+      const mid = snap.players.find(p => p.role === "climber" && p.climberIndex === 0);
+      if (mid && mid.platform === MID_MAX_PLATFORM) {
+        ctx.fillStyle = "#e67e22";
+        ctx.font = "bold 13px monospace";
+        ctx.textAlign = "center";
+        ctx.fillText("Press SPACE to pass tool back to MID ↓", canvas.width / 2, canvas.height - 20);
       } else {
         ctx.fillStyle = "#aaa";
         ctx.font = "13px monospace";
         ctx.textAlign = "center";
-        ctx.fillText("Waiting for TOP climber to reach this level…", canvas.width / 2, canvas.height - 20);
+        ctx.fillText("Waiting for MID climber to reach handoff floor…", canvas.width / 2, canvas.height - 20);
       }
     }
   }

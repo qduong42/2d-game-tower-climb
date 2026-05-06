@@ -55,11 +55,16 @@ func Tick(state GameState, inputs map[string]schema.InputPayload, dt float64) Ga
 			}
 		}
 
-		// Pass tool along the chain: base(-1) → MID(0) → TOP(1), same platform only.
+		// Pass tool along the chain — SPACE tries UP first, then DOWN.
+		// Up: base→MID, MID→TOP (same platform required).
+		// Down: TOP→MID at MidMaxPlatform, MID→base at platform 0 (same platform required).
 		if inp.Keys.Space && !prev.Space {
-			targetIndex := p.ClimberIndex + 1
+			passed := false
+
+			// Try passing UP (ClimberIndex + 1)
+			upTargetIdx := p.ClimberIndex + 1
 			for otherID, other := range next.Players {
-				if otherID == id || other.ClimberIndex != targetIndex || other.Platform != p.Platform {
+				if otherID == id || other.ClimberIndex != upTargetIdx || other.Platform != p.Platform {
 					continue
 				}
 				if p.Role == schema.RoleBase && len(p.HeldTools) > 0 {
@@ -69,12 +74,35 @@ func Tick(state GameState, inputs map[string]schema.InputPayload, dt float64) Ga
 						p.SelectedIdx = len(p.HeldTools) - 1
 					}
 					other.Tool = selected
+					passed = true
 					break
 				}
 				if p.Role == schema.RoleClimber && p.Tool != schema.ToolNone {
 					other.Tool = p.Tool
 					p.Tool = schema.ToolNone
+					passed = true
 					break
+				}
+			}
+
+			// Try passing DOWN if UP didn't fire
+			if !passed && p.Role == schema.RoleClimber && p.Tool != schema.ToolNone {
+				canPassDown := (p.ClimberIndex == 1 && p.Platform == MidMaxPlatform) ||
+					(p.ClimberIndex == 0 && p.Platform == 0)
+				if canPassDown {
+					downTargetIdx := p.ClimberIndex - 1
+					for otherID, other := range next.Players {
+						if otherID == id || other.ClimberIndex != downTargetIdx || other.Platform != p.Platform {
+							continue
+						}
+						if other.Role == schema.RoleBase {
+							other.HeldTools = append(other.HeldTools, p.Tool)
+						} else {
+							other.Tool = p.Tool
+						}
+						p.Tool = schema.ToolNone
+						break
+					}
 				}
 			}
 		}
