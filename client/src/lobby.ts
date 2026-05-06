@@ -29,8 +29,9 @@ export function showLobby(container: HTMLElement): Promise<LobbyResult> {
           </div>
         </label>
         <label>Your name
-          <input id="player-name" placeholder="alice"
-            style="display:block;width:100%;margin:0.25rem 0 1rem;padding:0.5rem;font:inherit;background:#333;color:#fff;border:1px solid #666" />
+          <input id="player-name" placeholder="alice" required
+            style="display:block;width:100%;margin:0.25rem 0 0.25rem;padding:0.5rem;font:inherit;background:#333;color:#fff;border:1px solid #666" />
+          <span id="name-error" style="display:none;color:#e74c3c;font-size:0.8rem;margin-bottom:0.75rem;display:block">&nbsp;</span>
         </label>
         <label>Colour
           <div id="color-picker" style="display:flex;gap:0.5rem;margin:0.25rem 0 1rem">
@@ -61,8 +62,17 @@ export function showLobby(container: HTMLElement): Promise<LobbyResult> {
     });
 
     container.querySelector("#join-btn")!.addEventListener("click", () => {
+      const nameInput = container.querySelector<HTMLInputElement>("#player-name")!;
+      const name = nameInput.value.trim();
+      if (!name) {
+        const err = container.querySelector<HTMLSpanElement>("#name-error")!;
+        err.textContent = "Name is required";
+        err.style.display = "block";
+        nameInput.style.border = "1px solid #e74c3c";
+        nameInput.focus();
+        return;
+      }
       const code = (container.querySelector<HTMLInputElement>("#room-code")!.value || "ROOM").toUpperCase();
-      const name = container.querySelector<HTMLInputElement>("#player-name")!.value || "player";
       container.innerHTML = "";
       resolve({ roomCode: code, name, color: selectedColor });
     });
