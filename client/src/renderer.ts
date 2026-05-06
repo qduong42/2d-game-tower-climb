@@ -63,17 +63,28 @@ export class CanvasRenderer {
       ctx.fillText(label, COL_X + PLATFORM_W / 2 + 10, PLATFORM_Y[i]! + 4);
     }
 
-    // Corner: base status only — climbers cannot see each other
-    const base = snap.players.find(p => p.role === "base");
-    if (base) this.drawCornerStatus(base, canvas.width - 160, 10);
+    // SPACE hint for MID climber: show when at their max platform with tool
+    // and prompt once TOP has reached the summit
+    if (me.climberIndex === 0 && me.hasTool && me.platform === NUM_PLATFORMS - 2) {
+      const top = snap.players.find(p => p.role === "climber" && p.climberIndex === 1);
+      if (top && top.platform === NUM_PLATFORMS - 1) {
+        ctx.fillStyle = "#2ecc71";
+        ctx.font = "bold 13px monospace";
+        ctx.textAlign = "center";
+        ctx.fillText("Press SPACE to pass tool ↑", canvas.width / 2, 490);
+      } else {
+        ctx.fillStyle = "#aaa";
+        ctx.font = "13px monospace";
+        ctx.textAlign = "center";
+        ctx.fillText("Waiting for TOP to reach the summit…", canvas.width / 2, 490);
+      }
+    }
   }
 
   // Returns the canvas X for a player in a climber's view.
-  // Own player → COL_X. Base operator (when on same platform) → offset left.
-  // Other climbers are not shown — each climber's column is their own view.
+  // Own player → COL_X. Everyone else is not shown — each climber's column is their own.
   private playerX(p: PlayerState, me: PlayerState): number | null {
     if (p.id === me.id) return COL_X;
-    if (p.role === "base" && p.platform === me.platform) return COL_X - 34;
     return null;
   }
 
