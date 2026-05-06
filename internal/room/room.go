@@ -15,7 +15,7 @@ import (
 	"nhooyr.io/websocket"
 )
 
-const tickRate = 20 // Hz
+const tickRate = 30 // Hz
 
 var colorPalette = []string{"#e74c3c", "#3498db", "#2ecc71", "#f39c12", "#9b59b6", "#1abc9c", "#e67e22", "#8e44ad"}
 
