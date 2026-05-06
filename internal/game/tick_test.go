@@ -7,84 +7,135 @@ import (
 	"github.com/qduong42/2d-game-tower-climb/internal/schema"
 )
 
-func stateWithPlayer(id string, x, y float64) game.GameState {
-	return game.GameState{
-		Tick: 0,
-		Players: map[string]*game.Player{
-			id: {ID: id, X: x, Y: y, Color: "#fff", Name: "test"},
-		},
+func playingState(players map[string]*game.Player) game.GameState {
+	return game.GameState{Tick: 0, Phase: schema.PhasePlaying, Players: players}
+}
+
+func climber(id string, platform int, hasTool bool) *game.Player {
+	return &game.Player{
+		ID: id, Color: "#fff", Name: "test",
+		Role: schema.RoleClimber, ClimberIndex: 0,
+		Platform: platform, HasTool: hasTool,
 	}
 }
 
-func TestTick_MoveRight(t *testing.T) {
-	state := stateWithPlayer("p1", 100, 100)
-	inputs := map[string]schema.InputPayload{
-		"p1": {Keys: schema.InputKeys{Right: true}},
-	}
-	next := game.Tick(state, inputs, 1.0/20.0)
-	p := next.Players["p1"]
-	if p.X <= 100 {
-		t.Errorf("expected x > 100, got %f", p.X)
-	}
-	if p.Y != 100 {
-		t.Errorf("expected y unchanged, got %f", p.Y)
+func baseOp(id string, hasTool bool) *game.Player {
+	return &game.Player{
+		ID: id, Color: "#fff", Name: "base",
+		Role: schema.RoleBase, ClimberIndex: -1,
+		Platform: 0, HasTool: hasTool,
 	}
 }
 
-func TestTick_MoveUp(t *testing.T) {
-	state := stateWithPlayer("p1", 100, 100)
-	inputs := map[string]schema.InputPayload{
-		"p1": {Keys: schema.InputKeys{Up: true}},
-	}
-	next := game.Tick(state, inputs, 1.0/20.0)
-	p := next.Players["p1"]
-	if p.Y >= 100 {
-		t.Errorf("expected y < 100, got %f", p.Y)
+func TestTick_ClimberMovesUpOnUpKey(t *testing.T) {
+	state := playingState(map[string]*game.Player{"p1": climber("p1", 0, false)})
+	next := game.Tick(state, map[string]schema.InputPayload{"p1": {Keys: schema.InputKeys{Up: true}}}, 1.0/30.0)
+	if next.Players["p1"].Platform != 1 {
+		t.Errorf("expected platform 1, got %d", next.Players["p1"].Platform)
 	}
 }
 
-func TestTick_ClampsToBounds(t *testing.T) {
-	state := stateWithPlayer("p1", 0, 0)
-	inputs := map[string]schema.InputPayload{
-		"p1": {Keys: schema.InputKeys{Left: true, Up: true}},
+func TestTick_ClimberMovesDownOnDownKey(t *testing.T) {
+	state := playingState(map[string]*game.Player{"p1": climber("p1", 2, false)})
+	next := game.Tick(state, map[string]schema.InputPayload{"p1": {Keys: schema.InputKeys{Down: true}}}, 1.0/30.0)
+	if next.Players["p1"].Platform != 1 {
+		t.Errorf("expected platform 1, got %d", next.Players["p1"].Platform)
 	}
-	next := game.Tick(state, inputs, 1.0)
-	p := next.Players["p1"]
-	if p.X < 0 || p.Y < 0 {
-		t.Errorf("position went below 0: x=%f y=%f", p.X, p.Y)
+}
+
+func TestTick_ClimberCannotGoBelowGround(t *testing.T) {
+	state := playingState(map[string]*game.Player{"p1": climber("p1", 0, false)})
+	next := game.Tick(state, map[string]schema.InputPayload{"p1": {Keys: schema.InputKeys{Down: true}}}, 1.0/30.0)
+	if next.Players["p1"].Platform != 0 {
+		t.Errorf("expected platform 0, got %d", next.Players["p1"].Platform)
+	}
+}
+
+func TestTick_ClimberCannotGoAboveTop(t *testing.T) {
+	top := game.NumPlatforms - 1
+	state := playingState(map[string]*game.Player{"p1": climber("p1", top, false)})
+	next := game.Tick(state, map[string]schema.InputPayload{"p1": {Keys: schema.InputKeys{Up: true}}}, 1.0/30.0)
+	if next.Players["p1"].Platform != top {
+		t.Errorf("expected platform %d, got %d", top, next.Players["p1"].Platform)
+	}
+}
+
+func TestTick_MovementIsRisingEdgeOnly(t *testing.T) {
+	state := playingState(map[string]*game.Player{"p1": climber("p1", 0, false)})
+	inp := schema.InputPayload{Keys: schema.InputKeys{Up: true}}
+
+	next1 := game.Tick(state, map[string]schema.InputPayload{"p1": inp}, 1.0/30.0)
+	if next1.Players["p1"].Platform != 1 {
+		t.Fatalf("tick1: expected platform 1, got %d", next1.Players["p1"].Platform)
+	}
+
+	// Up still held — should NOT move again
+	next2 := game.Tick(next1, map[string]schema.InputPayload{"p1": inp}, 1.0/30.0)
+	if next2.Players["p1"].Platform != 1 {
+		t.Errorf("tick2: expected platform 1 (held key, no move), got %d", next2.Players["p1"].Platform)
+	}
+}
+
+func TestTick_SpacePassesToolToPlayerOnSamePlatform(t *testing.T) {
+	state := playingState(map[string]*game.Player{
+		"base": baseOp("base", true),
+		"c1":   climber("c1", 0, false),
+	})
+	next := game.Tick(state, map[string]schema.InputPayload{"base": {Keys: schema.InputKeys{Space: true}}}, 1.0/30.0)
+	if next.Players["base"].HasTool {
+		t.Error("base should no longer have tool after passing")
+	}
+	if !next.Players["c1"].HasTool {
+		t.Error("c1 should have received the tool")
+	}
+}
+
+func TestTick_SpaceDoesNotPassIfNoOneSamePlatform(t *testing.T) {
+	state := playingState(map[string]*game.Player{
+		"base": baseOp("base", true),
+		"c1":   climber("c1", 1, false), // different platform
+	})
+	next := game.Tick(state, map[string]schema.InputPayload{"base": {Keys: schema.InputKeys{Space: true}}}, 1.0/30.0)
+	if !next.Players["base"].HasTool {
+		t.Error("base should still have tool — no one at same platform")
+	}
+}
+
+func TestTick_WinWhenClimberReachesTopWithTool(t *testing.T) {
+	state := playingState(map[string]*game.Player{
+		"c1": climber("c1", game.NumPlatforms-2, true),
+	})
+	next := game.Tick(state, map[string]schema.InputPayload{"c1": {Keys: schema.InputKeys{Up: true}}}, 1.0/30.0)
+	if next.Phase != schema.PhaseWon {
+		t.Errorf("expected phase won, got %q", next.Phase)
+	}
+}
+
+func TestTick_NoWinWithoutTool(t *testing.T) {
+	state := playingState(map[string]*game.Player{
+		"c1": climber("c1", game.NumPlatforms-2, false),
+	})
+	next := game.Tick(state, map[string]schema.InputPayload{"c1": {Keys: schema.InputKeys{Up: true}}}, 1.0/30.0)
+	if next.Phase == schema.PhaseWon {
+		t.Error("should not win without tool")
+	}
+}
+
+func TestTick_InputsIgnoredInWaitingPhase(t *testing.T) {
+	state := game.GameState{
+		Tick: 0, Phase: schema.PhaseWaiting,
+		Players: map[string]*game.Player{"c1": climber("c1", 0, false)},
+	}
+	next := game.Tick(state, map[string]schema.InputPayload{"c1": {Keys: schema.InputKeys{Up: true}}}, 1.0/30.0)
+	if next.Players["c1"].Platform != 0 {
+		t.Error("inputs should be ignored in waiting phase")
 	}
 }
 
 func TestTick_IncrementsTick(t *testing.T) {
-	state := stateWithPlayer("p1", 100, 100)
-	next := game.Tick(state, nil, 1.0/20.0)
-	if next.Tick != 1 {
-		t.Errorf("expected tick 1, got %d", next.Tick)
-	}
-}
-
-func TestTick_NoInputNoMove(t *testing.T) {
-	state := stateWithPlayer("p1", 100, 100)
-	next := game.Tick(state, nil, 1.0/20.0)
-	p := next.Players["p1"]
-	if p.X != 100 || p.Y != 100 {
-		t.Errorf("player moved without input: x=%f y=%f", p.X, p.Y)
-	}
-}
-
-func TestTick_PreservesOtherPlayers(t *testing.T) {
-	state := game.GameState{
-		Tick: 0,
-		Players: map[string]*game.Player{
-			"p1": {ID: "p1", X: 100, Y: 100, Color: "#f00", Name: "a"},
-			"p2": {ID: "p2", X: 200, Y: 200, Color: "#0f0", Name: "b"},
-		},
-	}
-	inputs := map[string]schema.InputPayload{
-		"p1": {Keys: schema.InputKeys{Right: true}},
-	}
-	next := game.Tick(state, inputs, 1.0/20.0)
-	if next.Players["p2"].X != 200 || next.Players["p2"].Y != 200 {
-		t.Error("p2 moved when only p1 had input")
+	state := game.GameState{Tick: 5, Phase: schema.PhaseWaiting, Players: map[string]*game.Player{}}
+	next := game.Tick(state, nil, 1.0/30.0)
+	if next.Tick != 6 {
+		t.Errorf("expected tick 6, got %d", next.Tick)
 	}
 }

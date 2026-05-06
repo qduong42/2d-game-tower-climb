@@ -14,6 +14,9 @@ export interface Envelope {
   payload: unknown;
 }
 
+export type Role = "base" | "climber";
+export type Phase = "waiting" | "playing" | "won";
+
 // --- Server → Client ---
 
 export interface WelcomePayload {
@@ -25,14 +28,17 @@ export interface WelcomePayload {
 
 export interface PlayerState {
   id: string;
-  x: number;
-  y: number;
   color: string;
   name: string;
+  role: Role;
+  climberIndex: number; // 0 or 1 for climbers; -1 for base operator
+  platform: number;     // 0=ground … NumPlatforms-1=top
+  hasTool: boolean;
 }
 
 export interface SnapshotPayload {
   tick: number;
+  phase: Phase;
   players: PlayerState[];
 }
 

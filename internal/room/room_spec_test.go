@@ -5,6 +5,7 @@ package room_test
 
 import (
 	"encoding/json"
+	"fmt"
 	"testing"
 	"time"
 
@@ -30,6 +31,30 @@ func drainUntilSnapshot(t *testing.T, ch <-chan schema.Envelope) schema.Snapshot
 			return snap
 		case <-deadline:
 			t.Fatal("timeout waiting for snapshot")
+			return schema.SnapshotPayload{}
+		}
+	}
+}
+
+// drainUntilPlayingSnapshot waits for a snapshot with Phase == playing.
+func drainUntilPlayingSnapshot(t *testing.T, ch <-chan schema.Envelope) schema.SnapshotPayload {
+	t.Helper()
+	deadline := time.After(500 * time.Millisecond)
+	for {
+		select {
+		case env := <-ch:
+			if env.Type != schema.MsgSnapshot {
+				continue
+			}
+			var snap schema.SnapshotPayload
+			if err := json.Unmarshal(env.Payload, &snap); err != nil {
+				t.Fatalf("unmarshal snapshot: %v", err)
+			}
+			if snap.Phase == schema.PhasePlaying {
+				return snap
+			}
+		case <-deadline:
+			t.Fatal("timeout waiting for playing snapshot")
 			return schema.SnapshotPayload{}
 		}
 	}
@@ -65,7 +90,7 @@ func TestSpec_SnapshotContainsJoinedPlayer(t *testing.T) {
 	}
 }
 
-func TestSpec_PlayerStartsInsideWorldBounds(t *testing.T) {
+func TestSpec_PlayerStartsAtGroundPlatform(t *testing.T) {
 	r := room.NewTestRoom("SPEC2")
 	go r.RunForTest()
 
@@ -75,8 +100,8 @@ func TestSpec_PlayerStartsInsideWorldBounds(t *testing.T) {
 	snap := drainUntilSnapshot(t, c.SendChan())
 	p := findPlayer(t, snap, "p1")
 
-	if p.X < 0 || p.X > game.WorldW || p.Y < 0 || p.Y > game.WorldH {
-		t.Errorf("spawn position (%g,%g) outside world bounds", p.X, p.Y)
+	if p.Platform != 0 {
+		t.Errorf("expected platform 0, got %d", p.Platform)
 	}
 }
 
@@ -89,7 +114,6 @@ func TestSpec_TwoPlayersSeeBothInSnapshot(t *testing.T) {
 	r.Join(c1, "#e74c3c")
 	r.Join(c2, "#3498db")
 
-	// Wait until c1 receives a snapshot with both players.
 	deadline := time.After(500 * time.Millisecond)
 	for {
 		select {
@@ -117,7 +141,6 @@ func TestSpec_PlayerAbsentFromSnapshotAfterLeave(t *testing.T) {
 	r.Join(c1, "#e74c3c")
 	r.Join(c2, "#3498db")
 
-	// Wait for both to appear.
 	deadline := time.After(500 * time.Millisecond)
 	for {
 		select {
@@ -136,7 +159,6 @@ func TestSpec_PlayerAbsentFromSnapshotAfterLeave(t *testing.T) {
 bothJoined:
 	r.Leave("p2")
 
-	// Now wait for a snapshot where p2 is gone.
 	deadline2 := time.After(500 * time.Millisecond)
 	for {
 		select {
@@ -146,11 +168,6 @@ bothJoined:
 			}
 			var snap schema.SnapshotPayload
 			json.Unmarshal(env.Payload, &snap)
-			for _, p := range snap.Players {
-				if p.ID == "p2" {
-					continue // still there, keep waiting
-				}
-			}
 			if len(snap.Players) == 1 {
 				return // p2 gone
 			}
@@ -160,38 +177,48 @@ bothJoined:
 	}
 }
 
-func TestSpec_InputMovesPlayerPosition(t *testing.T) {
+func TestSpec_ClimberMovesUpOnUpInput(t *testing.T) {
 	r := room.NewTestRoom("SPEC5")
 	go r.RunForTest()
 
-	c := room.NewTestClient("p1", "alice")
-	r.Join(c, "#e74c3c")
+	c1 := room.NewTestClient("p1", "alice")
+	c2 := room.NewTestClient("p2", "bob")
+	c3 := room.NewTestClient("p3", "carol")
+	r.Join(c1, "#e74c3c")
+	r.Join(c2, "#3498db")
+	r.Join(c3, "#2ecc71")
 
-	// Record starting x from first snapshot.
-	snap0 := drainUntilSnapshot(t, c.SendChan())
-	startX := findPlayer(t, snap0, "p1").X
+	// Find a climber ID from the first playing snapshot
+	snap := drainUntilPlayingSnapshot(t, c1.SendChan())
+	var climberID string
+	for _, p := range snap.Players {
+		if p.Role == schema.RoleClimber {
+			climberID = p.ID
+			break
+		}
+	}
+	if climberID == "" {
+		t.Fatal("no climber found in playing snapshot")
+	}
 
-	// Send right-key input.
-	r.ReceiveInput("p1", schema.InputPayload{
-		Keys: schema.InputKeys{Right: true},
-	})
+	r.ReceiveInput(climberID, schema.InputPayload{Keys: schema.InputKeys{Up: true}})
 
-	// Wait for a snapshot where x has increased.
 	deadline := time.After(500 * time.Millisecond)
 	for {
 		select {
-		case env := <-c.SendChan():
+		case env := <-c1.SendChan():
 			if env.Type != schema.MsgSnapshot {
 				continue
 			}
-			var snap schema.SnapshotPayload
-			json.Unmarshal(env.Payload, &snap)
-			p := findPlayer(t, snap, "p1")
-			if p.X > startX {
-				return // player moved right
+			var s schema.SnapshotPayload
+			json.Unmarshal(env.Payload, &s)
+			for _, p := range s.Players {
+				if p.ID == climberID && p.Platform > 0 {
+					return
+				}
 			}
 		case <-deadline:
-			t.Fatalf("player x never increased (started at %g)", startX)
+			t.Fatalf("climber %q never moved up", climberID)
 		}
 	}
 }
@@ -205,7 +232,6 @@ func TestSpec_ColorDeduplication(t *testing.T) {
 	r.Join(c1, "#e74c3c")
 	r.Join(c2, "#e74c3c") // same color — server should assign a different one
 
-	// Wait for both players in a snapshot.
 	deadline := time.After(500 * time.Millisecond)
 	for {
 		select {
@@ -229,5 +255,22 @@ func TestSpec_ColorDeduplication(t *testing.T) {
 		case <-deadline:
 			t.Fatal("two players never appeared in snapshot")
 		}
+	}
+}
+
+func TestSpec_RoomRejectsMoreThanMaxPlayers(t *testing.T) {
+	r := room.NewTestRoom("SPEC7")
+	go r.RunForTest()
+
+	for i := 0; i < game.MaxPlayers; i++ {
+		c := room.NewTestClient(fmt.Sprintf("p%d", i+1), fmt.Sprintf("player%d", i+1))
+		if ok := r.Join(c, "#e74c3c"); !ok {
+			t.Fatalf("join %d/%d rejected unexpectedly", i+1, game.MaxPlayers)
+		}
+	}
+
+	extra := room.NewTestClient("p_extra", "extra")
+	if ok := r.Join(extra, "#ffffff"); ok {
+		t.Error("4th player should have been rejected")
 	}
 }

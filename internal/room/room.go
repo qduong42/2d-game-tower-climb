@@ -2,11 +2,11 @@ package room
 
 import (
 	"context"
-	"crypto/rand"
+	cryptorand "crypto/rand"
 	"encoding/hex"
 	"encoding/json"
 	"log/slog"
-	"math/big"
+	"math/rand/v2"
 	"sync"
 	"time"
 
@@ -18,11 +18,6 @@ import (
 const tickRate = 30 // Hz
 
 var colorPalette = []string{"#e74c3c", "#3498db", "#2ecc71", "#f39c12", "#9b59b6", "#1abc9c", "#e67e22", "#8e44ad"}
-
-func randFloat(min, max float64) float64 {
-	n, _ := rand.Int(rand.Reader, big.NewInt(1<<24))
-	return min + (max-min)*float64(n.Int64())/float64(1<<24)
-}
 
 // pickColor returns the requested color if unused, otherwise the first available palette color.
 func pickColor(requested string, state game.GameState) string {
@@ -53,7 +48,7 @@ type Client struct {
 type joinReq struct {
 	client *Client
 	color  string
-	done   chan struct{} // closed after color is assigned
+	done   chan bool // true = accepted, false = room full
 }
 
 // Room manages one game session.
@@ -77,7 +72,7 @@ type inputMsg struct {
 func newRoom(code string) *Room {
 	return &Room{
 		code:   code,
-		state:  game.GameState{Players: make(map[string]*game.Player)},
+		state:  game.GameState{Phase: schema.PhaseWaiting, Players: make(map[string]*game.Player)},
 		inputs: make(map[string]schema.InputPayload),
 		join:   make(chan joinReq, 8),
 		leave:  make(chan string, 8),
@@ -91,10 +86,11 @@ func (r *Room) stop() {
 }
 
 // Join queues a new client into the room and waits for color assignment.
-func (r *Room) Join(c *Client, color string) {
-	done := make(chan struct{})
+// Returns false if the room is full.
+func (r *Room) Join(c *Client, color string) bool {
+	done := make(chan bool, 1)
 	r.join <- joinReq{client: c, color: color, done: done}
-	<-done
+	return <-done
 }
 
 // Leave queues a client removal.
@@ -119,15 +115,23 @@ func (r *Room) run() {
 
 		case req := <-r.join:
 			c := req.client
-			clients[c.id] = c
 			r.mu.Lock()
+			if len(r.state.Players) >= game.MaxPlayers {
+				r.mu.Unlock()
+				req.done <- false
+				continue
+			}
 			assignedColor := pickColor(req.color, r.state)
 			r.state.Players[c.id] = &game.Player{
-				ID: c.id, X: randFloat(60, game.WorldW-60), Y: randFloat(60, game.WorldH-60), Color: assignedColor, Name: c.name,
+				ID: c.id, Color: assignedColor, Name: c.name,
 			}
 			c.assignedColor = assignedColor
+			if len(r.state.Players) == game.MaxPlayers {
+				r.assignRoles()
+			}
 			r.mu.Unlock()
-			close(req.done)
+			clients[c.id] = c
+			req.done <- true
 			slog.Info("player_join", "room", r.code, "player", c.id, "name", c.name)
 			r.broadcast(clients, schema.Envelope{
 				Type:    schema.MsgEvent,
@@ -168,14 +172,42 @@ func (r *Room) run() {
 	}
 }
 
+// assignRoles randomly assigns roles when the third player joins.
+// Must be called with r.mu held.
+func (r *Room) assignRoles() {
+	ids := make([]string, 0, len(r.state.Players))
+	for id := range r.state.Players {
+		ids = append(ids, id)
+	}
+	rand.Shuffle(len(ids), func(i, j int) { ids[i], ids[j] = ids[j], ids[i] })
+
+	r.state.Players[ids[0]].Role = schema.RoleBase
+	r.state.Players[ids[0]].HasTool = true
+	r.state.Players[ids[0]].ClimberIndex = -1
+
+	r.state.Players[ids[1]].Role = schema.RoleClimber
+	r.state.Players[ids[1]].ClimberIndex = 0
+
+	r.state.Players[ids[2]].Role = schema.RoleClimber
+	r.state.Players[ids[2]].ClimberIndex = 1
+
+	r.state.Phase = schema.PhasePlaying
+}
+
 func buildSnapshot(s game.GameState) schema.SnapshotPayload {
 	players := make([]schema.PlayerState, 0, len(s.Players))
 	for _, p := range s.Players {
 		players = append(players, schema.PlayerState{
-			ID: p.ID, X: p.X, Y: p.Y, Color: p.Color, Name: p.Name,
+			ID:           p.ID,
+			Color:        p.Color,
+			Name:         p.Name,
+			Role:         p.Role,
+			ClimberIndex: p.ClimberIndex,
+			Platform:     p.Platform,
+			HasTool:      p.HasTool,
 		})
 	}
-	return schema.SnapshotPayload{Tick: s.Tick, Players: players}
+	return schema.SnapshotPayload{Tick: s.Tick, Phase: s.Phase, Players: players}
 }
 
 func (r *Room) broadcast(clients map[string]*Client, env schema.Envelope) {
@@ -221,7 +253,7 @@ func writePump(ctx context.Context, c *Client) {
 
 func generateID() string {
 	b := make([]byte, 8)
-	_, _ = rand.Read(b)
+	_, _ = cryptorand.Read(b)
 	return hex.EncodeToString(b)
 }
 

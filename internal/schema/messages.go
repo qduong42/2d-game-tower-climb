@@ -19,6 +19,23 @@ type Envelope struct {
 	Payload json.RawMessage `json:"payload"`
 }
 
+// Role identifies a player's function in the game.
+type Role string
+
+const (
+	RoleBase    Role = "base"
+	RoleClimber Role = "climber"
+)
+
+// Phase describes the current game state.
+type Phase string
+
+const (
+	PhaseWaiting Phase = "waiting" // fewer than MaxPlayers joined
+	PhasePlaying Phase = "playing"
+	PhaseWon     Phase = "won"
+)
+
 // --- Server → Client ---
 
 type WelcomePayload struct {
@@ -29,15 +46,18 @@ type WelcomePayload struct {
 }
 
 type PlayerState struct {
-	ID    string  `json:"id"`
-	X     float64 `json:"x"`
-	Y     float64 `json:"y"`
-	Color string  `json:"color"`
-	Name  string  `json:"name"`
+	ID           string `json:"id"`
+	Color        string `json:"color"`
+	Name         string `json:"name"`
+	Role         Role   `json:"role"`
+	ClimberIndex int    `json:"climberIndex"` // 0 or 1 for climbers; -1 for base operator
+	Platform     int    `json:"platform"`     // 0=ground … NumPlatforms-1=top
+	HasTool      bool   `json:"hasTool"`
 }
 
 type SnapshotPayload struct {
 	Tick    uint64        `json:"tick"`
+	Phase   Phase         `json:"phase"`
 	Players []PlayerState `json:"players"`
 }
 

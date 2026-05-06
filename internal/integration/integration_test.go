@@ -115,8 +115,8 @@ func TestE2E_JoinReceivesWelcome(t *testing.T) {
 	if w.RoomCode != "ROOM1" {
 		t.Errorf("Welcome.roomCode = %q, want ROOM1", w.RoomCode)
 	}
-	if w.TickRate != 20 {
-		t.Errorf("Welcome.tickRate = %d, want 20", w.TickRate)
+	if w.TickRate != 30 {
+		t.Errorf("Welcome.tickRate = %d, want 30", w.TickRate)
 	}
 }
 
@@ -180,51 +180,57 @@ func TestE2E_TwoPlayersSeeBothInSnapshot(t *testing.T) {
 	}
 }
 
-func TestE2E_PlayerMovesWhenInputSent(t *testing.T) {
+func TestE2E_GameStartsWhenThreePlayersJoin(t *testing.T) {
 	srv := testServer(t)
-	c := join(t, srv, "ROOM4", "alice", "#e74c3c")
+	c1 := join(t, srv, "ROOM4", "alice", "#e74c3c")
+	c2 := join(t, srv, "ROOM4", "bob", "#3498db")
+	c3 := join(t, srv, "ROOM4", "carol", "#2ecc71")
 
-	welcomeEnv := c.readEnvelope(t)
-	var w schema.WelcomePayload
-	json.Unmarshal(welcomeEnv.Payload, &w)
+	// Discard welcome messages from each
+	c1.readEnvelope(t)
+	c2.readEnvelope(t)
+	c3.readEnvelope(t)
 
-	// Get starting position.
-	firstSnap := c.readUntil(t, func(e schema.Envelope) bool { return e.Type == schema.MsgSnapshot })
-	var snap0 schema.SnapshotPayload
-	json.Unmarshal(firstSnap.Payload, &snap0)
-	var startX float64
-	for _, p := range snap0.Players {
-		if p.ID == w.YourID {
-			startX = p.X
-		}
-	}
-
-	// Send right-key input.
-	inp, _ := json.Marshal(schema.Envelope{
-		Type:    schema.MsgInput,
-		Payload: mustMarshal(schema.InputPayload{Keys: schema.InputKeys{Right: true}}),
-	})
-	c.conn.Write(c.ctx, websocket.MessageText, inp)
-
-	// Wait for x to increase.
-	moved := false
-	deadline := time.After(2 * time.Second)
-	for !moved {
-		select {
-		case <-deadline:
-			t.Fatalf("player never moved right (startX=%g)", startX)
-		default:
-			env := c.readEnvelope(t)
-			if env.Type != schema.MsgSnapshot {
-				continue
-			}
+	// All three clients should see a playing-phase snapshot with roles assigned
+	for _, tc := range []struct {
+		name   string
+		client *wsClient
+	}{
+		{"alice sees playing", c1},
+		{"bob sees playing", c2},
+		{"carol sees playing", c3},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			env := tc.client.readUntil(t, func(e schema.Envelope) bool {
+				if e.Type != schema.MsgSnapshot {
+					return false
+				}
+				var snap schema.SnapshotPayload
+				json.Unmarshal(e.Payload, &snap)
+				return snap.Phase == schema.PhasePlaying
+			})
 			var snap schema.SnapshotPayload
 			json.Unmarshal(env.Payload, &snap)
+			if len(snap.Players) != 3 {
+				t.Errorf("expected 3 players, got %d", len(snap.Players))
+			}
+			// Exactly one base operator with tool
+			bases := 0
+			toolCount := 0
 			for _, p := range snap.Players {
-				if p.ID == w.YourID && p.X > startX {
-					moved = true
+				if p.Role == schema.RoleBase {
+					bases++
+				}
+				if p.HasTool {
+					toolCount++
 				}
 			}
-		}
+			if bases != 1 {
+				t.Errorf("expected 1 base operator, got %d", bases)
+			}
+			if toolCount != 1 {
+				t.Errorf("expected exactly 1 player with tool, got %d", toolCount)
+			}
+		})
 	}
 }

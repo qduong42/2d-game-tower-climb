@@ -2,48 +2,64 @@ package game
 
 import "github.com/qduong42/2d-game-tower-climb/internal/schema"
 
-const (
-	Speed  = 200.0 // pixels per second
-	WorldW = 800.0
-	WorldH = 600.0
-)
-
 // Tick advances game state by dt seconds given the latest inputs.
 // It is a pure function — no side effects.
 func Tick(state GameState, inputs map[string]schema.InputPayload, dt float64) GameState {
 	next := GameState{
 		Tick:    state.Tick + 1,
+		Phase:   state.Phase,
 		Players: make(map[string]*Player, len(state.Players)),
 	}
 	for id, p := range state.Players {
-		np := *p
-		if inp, ok := inputs[id]; ok {
-			if inp.Keys.Left {
-				np.X -= Speed * dt
+		cp := *p
+		next.Players[id] = &cp
+	}
+
+	if state.Phase != schema.PhasePlaying {
+		return next
+	}
+
+	for id, inp := range inputs {
+		p, ok := next.Players[id]
+		if !ok {
+			continue
+		}
+		prev := p.PrevKeys
+
+		if p.Role == schema.RoleClimber {
+			// Rising edge only — one platform step per keypress
+			if inp.Keys.Up && !prev.Up && p.Platform < NumPlatforms-1 {
+				p.Platform++
 			}
-			if inp.Keys.Right {
-				np.X += Speed * dt
-			}
-			if inp.Keys.Up {
-				np.Y -= Speed * dt
-			}
-			if inp.Keys.Down {
-				np.Y += Speed * dt
+			if inp.Keys.Down && !prev.Down && p.Platform > 0 {
+				p.Platform--
 			}
 		}
-		np.X = clamp(np.X, 0, WorldW)
-		np.Y = clamp(np.Y, 0, WorldH)
-		next.Players[id] = &np
-	}
-	return next
-}
 
-func clamp(v, min, max float64) float64 {
-	if v < min {
-		return min
+		// Pass tool to any other player at the same platform (rising edge)
+		if inp.Keys.Space && !prev.Space && p.HasTool {
+			for otherID, other := range next.Players {
+				if otherID == id {
+					continue
+				}
+				if other.Platform == p.Platform {
+					p.HasTool = false
+					other.HasTool = true
+					break
+				}
+			}
+		}
+
+		p.PrevKeys = inp.Keys
 	}
-	if v > max {
-		return max
+
+	// Win: climber reaches top platform with tool
+	for _, p := range next.Players {
+		if p.Role == schema.RoleClimber && p.Platform == NumPlatforms-1 && p.HasTool {
+			next.Phase = schema.PhaseWon
+			break
+		}
 	}
-	return v
+
+	return next
 }

@@ -17,7 +17,7 @@ describe("schema types and constants", () => {
   });
 
   it("Envelope can be constructed and serialized", () => {
-    const payload: WelcomePayload = { yourId: "p1", roomCode: "ABCD", tickRate: 20, color: "#e74c3c" };
+    const payload: WelcomePayload = { yourId: "p1", roomCode: "ABCD", tickRate: 30, color: "#e74c3c" };
     const env: Envelope = { type: MsgType.Welcome, payload };
     const json = JSON.stringify(env);
     const parsed = JSON.parse(json) as Envelope;
@@ -35,11 +35,17 @@ describe("schema types and constants", () => {
     expect(json).not.toContain("mouse");
   });
 
-  it("SnapshotPayload players array", () => {
-    const snap: SnapshotPayload = {
+  it("SnapshotPayload has phase and players", () => {
+    const s: SnapshotPayload = {
       tick: 42,
-      players: [{ id: "p1", x: 10, y: 20, color: "#ff0000", name: "alice" }],
+      phase: "playing",
+      players: [{
+        id: "p1", color: "#ff0000", name: "alice",
+        role: "climber", climberIndex: 0, platform: 2, hasTool: false,
+      }],
     };
-    expect(snap.players[0]?.id).toBe("p1");
+    expect(s.players[0]?.id).toBe("p1");
+    expect(s.phase).toBe("playing");
+    expect(s.players[0]?.platform).toBe(2);
   });
 });

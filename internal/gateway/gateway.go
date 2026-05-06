@@ -71,14 +71,17 @@ func (g *Gateway) handshake(ctx context.Context, conn *websocket.Conn, code stri
 
 	rm := g.mgr.GetOrCreate(code)
 	client := room.NewConnectedClient(join.Name, conn)
-	rm.Join(client, join.Color) // blocks until color is assigned
+	if ok := rm.Join(client, join.Color); !ok {
+		conn.Close(websocket.StatusPolicyViolation, "room is full")
+		return nil, nil
+	}
 
 	welcome := schema.Envelope{
 		Type: schema.MsgWelcome,
 		Payload: mustMarshal(schema.WelcomePayload{
 			YourID:   client.ID(),
 			RoomCode: code,
-			TickRate: 20,
+			TickRate: 30,
 			Color:    client.AssignedColor(),
 		}),
 	}
