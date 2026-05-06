@@ -157,6 +157,40 @@ func TestTick_WinWhenTopClimberReachesTopWithTool(t *testing.T) {
 	}
 }
 
+func TestTick_VictoryCondition(t *testing.T) {
+	// Victory: TOP climber (index 1) at the top platform with the tool → PhaseWon
+	// Win check runs every tick regardless of input.
+	state := playingState(map[string]*game.Player{
+		"top": topClimber("top", game.NumPlatforms-1, true),
+	})
+	next := game.Tick(state, nil, 1.0/30.0)
+	if next.Phase != schema.PhaseWon {
+		t.Errorf("expected PhaseWon, got %q", next.Phase)
+	}
+}
+
+func TestTick_VictoryRequiresTool(t *testing.T) {
+	// TOP at summit without the tool must NOT win.
+	state := playingState(map[string]*game.Player{
+		"top": topClimber("top", game.NumPlatforms-1, false),
+	})
+	next := game.Tick(state, nil, 1.0/30.0)
+	if next.Phase == schema.PhaseWon {
+		t.Error("TOP at summit without tool should not win")
+	}
+}
+
+func TestTick_VictoryRequiresTopClimber(t *testing.T) {
+	// MID climber at their max with tool must NOT win (MID can never reach summit).
+	state := playingState(map[string]*game.Player{
+		"mid": climber("mid", game.MidMaxPlatform, true),
+	})
+	next := game.Tick(state, nil, 1.0/30.0)
+	if next.Phase == schema.PhaseWon {
+		t.Error("MID climber with tool should not win — only TOP can reach the summit")
+	}
+}
+
 func TestTick_NoWinWithoutTool(t *testing.T) {
 	state := playingState(map[string]*game.Player{
 		"c1": topClimber("c1", game.NumPlatforms-2, false),
