@@ -343,16 +343,34 @@ Wind events are broadcast by the base technician's weather panel and hit all seg
 - Cannot climb. Cannot be hit by wind.
 - The only player with full visibility of incoming weather; all other players depend on the base calling out gusts.
 
-### 9.6 Win / fail condition
+### 9.6 Wrong tool penalty (Option A — dead time)
+
+If the wrong tool arrives at the nacelle the top climber must send it back down. No hard block — the chain just has to run in reverse, costing time. The base operator is responsible for reading what the nacelle needs and sending in the right order.
+
+- Top climber carries wrong tool back to their bottom platform → it transfers back to the climber below → passed down the chain → returned to base.
+- Base can then queue and send the correct tool.
+- Clock keeps running throughout. No item is ever destroyed.
+
+### 9.7 Drop rules
+
+Items fall exactly **one platform level** when dropped — never more.
+
+- Dropped on top platform → lands on mid platform (same segment).
+- Dropped on mid platform → lands on bot platform (same segment).
+- Dropped on bot platform → lands on bot platform (stays, does not leave the tower).
+- Dropped on ladder → lands on the platform immediately below the player's current position.
+
+This means a fumble during a gust is always recoverable — you climb back down one level and pick it up. A chain of fumbles costs time but never loses the item permanently.
+
+### 9.8 Win / fail condition
 
 - **Win**: all required items delivered to the nacelle before the timer expires.
-- **Fail**: timer runs out, or an item is dropped off the tower entirely (falls below bottom platform — TBD whether this is possible or items always land on the lowest platform).
-- No player death — wind only moves you down, never off the tower permanently.
+- **Fail**: timer runs out. No permanent loss of items or players — difficulty comes from time pressure and coordination, not permadeath.
 
-### 9.7 Open questions for playtesting
+### 9.9 Open questions for playtesting
 
 - Should wind direction vary per gust (left vs right), or always come from the same side?
 - How long is each gust? (Current guess: 2–3 seconds.)
-- Delay between segments for upward-travelling wind — creates a warning window or feels unfair?
-- Does the base technician have any active input beyond item queue (e.g. can brace a single climber remotely)?
+- Upward-travelling wind delay between segments — creates a warning window or feels unfair?
 - How many items per round? (Starting guess: 3 items for a 3-minute round.)
+- Does the nacelle display the full required item list, or reveal one at a time?
