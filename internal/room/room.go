@@ -186,8 +186,9 @@ func (r *Room) assignRoles() {
 	rand.Shuffle(len(ids), func(i, j int) { ids[i], ids[j] = ids[j], ids[i] })
 
 	r.state.Players[ids[0]].Role = schema.RoleBase
-	r.state.Players[ids[0]].HasTool = true
 	r.state.Players[ids[0]].ClimberIndex = -1
+	r.state.Players[ids[0]].HeldTools = []schema.ToolType{schema.ToolWrench, schema.ToolHammer}
+	r.state.Players[ids[0]].SelectedIdx = 0
 
 	r.state.Players[ids[1]].Role = schema.RoleClimber
 	r.state.Players[ids[1]].ClimberIndex = 0
@@ -202,6 +203,10 @@ func (r *Room) assignRoles() {
 func buildSnapshot(s game.GameState) schema.SnapshotPayload {
 	players := make([]schema.PlayerState, 0, len(s.Players))
 	for _, p := range s.Players {
+		var selectedTool schema.ToolType
+		if p.Role == schema.RoleBase && len(p.HeldTools) > 0 {
+			selectedTool = p.HeldTools[p.SelectedIdx]
+		}
 		players = append(players, schema.PlayerState{
 			ID:           p.ID,
 			Color:        p.Color,
@@ -209,7 +214,9 @@ func buildSnapshot(s game.GameState) schema.SnapshotPayload {
 			Role:         p.Role,
 			ClimberIndex: p.ClimberIndex,
 			Platform:     p.Platform,
-			HasTool:      p.HasTool,
+			Tool:         p.Tool,
+			HeldTools:    p.HeldTools,
+			SelectedTool: selectedTool,
 		})
 	}
 	return schema.SnapshotPayload{Tick: s.Tick, Phase: s.Phase, Players: players}

@@ -27,6 +27,15 @@ const (
 	RoleClimber Role = "climber"
 )
 
+// ToolType identifies which physical tool a player is holding.
+type ToolType string
+
+const (
+	ToolNone   ToolType = ""
+	ToolWrench ToolType = "wrench"
+	ToolHammer ToolType = "hammer"
+)
+
 // Phase describes the current game state.
 type Phase string
 
@@ -46,13 +55,15 @@ type WelcomePayload struct {
 }
 
 type PlayerState struct {
-	ID           string `json:"id"`
-	Color        string `json:"color"`
-	Name         string `json:"name"`
-	Role         Role   `json:"role"`
-	ClimberIndex int    `json:"climberIndex"` // 0 or 1 for climbers; -1 for base operator
-	Platform     int    `json:"platform"`     // 0=ground … NumPlatforms-1=top
-	HasTool      bool   `json:"hasTool"`
+	ID           string     `json:"id"`
+	Color        string     `json:"color"`
+	Name         string     `json:"name"`
+	Role         Role       `json:"role"`
+	ClimberIndex int        `json:"climberIndex"`  // 0 or 1 for climbers; -1 for base operator
+	Platform     int        `json:"platform"`      // 0=ground … NumPlatforms-1=top
+	Tool         ToolType   `json:"tool"`          // tool currently carried ("" = none)
+	HeldTools    []ToolType `json:"heldTools"`     // BASE inventory (nil for climbers)
+	SelectedTool ToolType   `json:"selectedTool"`  // BASE: which tool is queued to pass next
 }
 
 type SnapshotPayload struct {

@@ -14,9 +14,11 @@ type Player struct {
 	Color        string
 	Name         string
 	Role         schema.Role
-	ClimberIndex int          // 0 or 1 for climbers; -1 for base operator
-	Platform     int          // 0–(NumPlatforms-1); base operator always stays at 0
-	HasTool      bool
+	ClimberIndex int              // 0 or 1 for climbers; -1 for base operator
+	Platform     int              // 0–(NumPlatforms-1); base operator always stays at 0
+	Tool         schema.ToolType  // tool currently carried ("" = none)
+	HeldTools    []schema.ToolType // BASE inventory (nil for climbers)
+	SelectedIdx  int              // BASE: index into HeldTools
 	PrevKeys     schema.InputKeys // used for rising-edge detection
 }
 

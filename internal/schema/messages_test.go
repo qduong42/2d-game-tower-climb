@@ -42,7 +42,7 @@ func TestEnvelopeRoundtrip_Snapshot(t *testing.T) {
 		Payload: mustMarshal(t, schema.SnapshotPayload{
 			Tick: 42,
 			Players: []schema.PlayerState{
-				{ID: "p1", Color: "#ff0000", Name: "alice", Role: schema.RoleClimber, ClimberIndex: 0, Platform: 1},
+				{ID: "p1", Color: "#ff0000", Name: "alice", Role: schema.RoleClimber, ClimberIndex: 0, Platform: 1, Tool: schema.ToolNone},
 			},
 		}),
 	}

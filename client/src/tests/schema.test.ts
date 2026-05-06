@@ -41,7 +41,7 @@ describe("schema types and constants", () => {
       phase: "playing",
       players: [{
         id: "p1", color: "#ff0000", name: "alice",
-        role: "climber", climberIndex: 0, platform: 2, hasTool: false,
+        role: "climber", climberIndex: 0, platform: 2, tool: "", heldTools: [], selectedTool: "",
       }],
     };
     expect(s.players[0]?.id).toBe("p1");

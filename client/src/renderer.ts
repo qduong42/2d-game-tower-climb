@@ -66,7 +66,7 @@ export class CanvasRenderer {
     }
 
     // SPACE hint: MID at the handoff platform passes to TOP when TOP is also here
-    if (me.climberIndex === 0 && me.hasTool && me.platform === MID_MAX_PLATFORM) {
+    if (me.climberIndex === 0 && me.tool && me.platform === MID_MAX_PLATFORM) {
       const top = snap.players.find(p => p.role === "climber" && p.climberIndex === 1);
       if (top && top.platform === MID_MAX_PLATFORM) {
         ctx.fillStyle = "#2ecc71";
@@ -115,22 +115,44 @@ export class CanvasRenderer {
     ctx.textAlign = "center";
     ctx.fillText(me.name, W / 2, 143);
 
-    if (me.hasTool) {
-      ctx.fillStyle = "#ffd700";
-      ctx.font = "bold 13px monospace";
-      ctx.fillText("⚙ HOLDING TOOL", W / 2, 162);
+    // Tool inventory: show each held tool as a box, highlight the selected one
+    const toolEmoji: Record<string, string> = { wrench: "🔧 WRENCH", hammer: "🔨 HAMMER" };
+    const toolBoxW = 130, toolBoxH = 36, toolBoxY = 158;
+    const totalW = me.heldTools.length * toolBoxW + (me.heldTools.length - 1) * 12;
+    let bx = W / 2 - totalW / 2;
+    me.heldTools.forEach((t) => {
+      const isSelected = t === me.selectedTool;
+      ctx.fillStyle = isSelected ? "#2c3e8a" : "#1e2040";
+      ctx.strokeStyle = isSelected ? "#ffd700" : "#445";
+      ctx.lineWidth = isSelected ? 2 : 1;
+      ctx.beginPath();
+      ctx.roundRect(bx, toolBoxY, toolBoxW, toolBoxH, 4);
+      ctx.fill();
+      ctx.stroke();
+      ctx.fillStyle = isSelected ? "#ffd700" : "#aaa";
+      ctx.font = isSelected ? "bold 11px monospace" : "11px monospace";
+      ctx.textAlign = "center";
+      ctx.fillText(toolEmoji[t] ?? t.toUpperCase(), bx + toolBoxW / 2, toolBoxY + 23);
+      bx += toolBoxW + 12;
+    });
+    if (me.heldTools.length === 0) {
+      ctx.fillStyle = "#556";
+      ctx.font = "12px monospace";
+      ctx.textAlign = "center";
+      ctx.fillText("no tools remaining", W / 2, toolBoxY + 23);
     } else {
-      ctx.fillStyle = "#778";
-      ctx.font = "13px monospace";
-      ctx.fillText("tool passed", W / 2, 162);
+      ctx.fillStyle = "#556";
+      ctx.font = "10px monospace";
+      ctx.textAlign = "center";
+      ctx.fillText("↑/↓ to select", W / 2, toolBoxY + toolBoxH + 14);
     }
 
     // Divider
     ctx.strokeStyle = "#334";
     ctx.lineWidth = 1;
     ctx.beginPath();
-    ctx.moveTo(60, 180);
-    ctx.lineTo(W - 60, 180);
+    ctx.moveTo(60, 220);
+    ctx.lineTo(W - 60, 220);
     ctx.stroke();
 
     // Climber status cards
@@ -140,21 +162,21 @@ export class CanvasRenderer {
 
     climbers.forEach((c, i) => {
       const cardX = 120 + i * 320;
-      this.drawClimberCard(c, cardX, 210);
+      this.drawClimberCard(c, cardX, 240);
     });
 
     // Instruction
     const climberAtGround = snap.players.some(p => p.role === "climber" && p.platform === 0);
-    if (me.hasTool && climberAtGround) {
+    if (me.heldTools.length > 0 && climberAtGround) {
       ctx.fillStyle = "#2ecc71";
       ctx.font = "bold 13px monospace";
       ctx.textAlign = "center";
-      ctx.fillText("Press SPACE to pass tool →", W / 2, 490);
-    } else if (me.hasTool) {
+      ctx.fillText(`Press SPACE to pass ${me.selectedTool} →`, W / 2, canvas.height - 20);
+    } else if (me.heldTools.length > 0) {
       ctx.fillStyle = "#aaa";
       ctx.font = "13px monospace";
       ctx.textAlign = "center";
-      ctx.fillText("Waiting for a climber to reach ground level…", W / 2, 490);
+      ctx.fillText("Waiting for a climber to reach ground level…", W / 2, canvas.height - 20);
     }
   }
 
@@ -187,10 +209,10 @@ export class CanvasRenderer {
     ctx.textAlign = "center";
     ctx.fillText(p.name, x + W / 2, y + 90);
 
-    if (p.hasTool) {
+    if (p.tool) {
       ctx.fillStyle = "#ffd700";
       ctx.font = "12px monospace";
-      ctx.fillText("⚙ has tool", x + W / 2, y + 108);
+      ctx.fillText(`⚙ ${p.tool}`, x + W / 2, y + 108);
     }
 
     // Mini tower showing position
@@ -274,7 +296,7 @@ export class CanvasRenderer {
     ctx.fillStyle = "#aaa";
     ctx.font = "9px monospace";
     ctx.fillText(p.role === "base" ? "BASE" : p.climberIndex === 0 ? "MID" : "TOP", x, y + PLAYER_RADIUS + 12);
-    if (p.hasTool) {
+    if (p.tool) {
       ctx.fillStyle = "#ffd700";
       ctx.font = "bold 14px monospace";
       ctx.fillText("⚙", x + PLAYER_RADIUS + 2, y - PLAYER_RADIUS + 4);
@@ -300,7 +322,7 @@ export class CanvasRenderer {
     const floor = p.platform === 0 ? "Ground" : p.platform === NUM_PLATFORMS - 1 ? "Top" : p.platform === MID_MAX_PLATFORM ? "Handoff" : `Floor ${p.platform}`;
     ctx.fillText(`${label}: ${p.name}`, x + 36, y + 18);
     ctx.fillStyle = "#aaa";
-    ctx.fillText(`${floor}${p.hasTool ? " ⚙" : ""}`, x + 36, y + 34);
+    ctx.fillText(`${floor}${p.tool ? " ⚙" : ""}`, x + 36, y + 34);
   }
 
   private clear(): void {

@@ -214,22 +214,18 @@ func TestE2E_GameStartsWhenThreePlayersJoin(t *testing.T) {
 			if len(snap.Players) != 3 {
 				t.Errorf("expected 3 players, got %d", len(snap.Players))
 			}
-			// Exactly one base operator with tool
+			// Exactly one base operator holding both tools
 			bases := 0
-			toolCount := 0
 			for _, p := range snap.Players {
 				if p.Role == schema.RoleBase {
 					bases++
-				}
-				if p.HasTool {
-					toolCount++
+					if len(p.HeldTools) != 2 {
+						t.Errorf("base operator should start with 2 tools, got %d", len(p.HeldTools))
+					}
 				}
 			}
 			if bases != 1 {
 				t.Errorf("expected 1 base operator, got %d", bases)
-			}
-			if toolCount != 1 {
-				t.Errorf("expected exactly 1 player with tool, got %d", toolCount)
 			}
 		})
 	}

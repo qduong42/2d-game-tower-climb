@@ -6,7 +6,7 @@ function snap(tick: number, platform: number): SnapshotPayload {
   return {
     tick,
     phase: "playing",
-    players: [{ id: "p1", color: "#fff", name: "a", role: "climber", climberIndex: 0, platform, hasTool: false }],
+    players: [{ id: "p1", color: "#fff", name: "a", role: "climber", climberIndex: 0, platform, tool: "", heldTools: [], selectedTool: "" }],
   };
 }
 
@@ -35,11 +35,11 @@ describe("InterpolationBuffer", () => {
   it("includes a player present in the latest snapshot", () => {
     const buf = new InterpolationBuffer();
     buf.push({ tick: 1, phase: "playing", players: [
-      { id: "p1", color: "#f00", name: "a", role: "climber", climberIndex: 0, platform: 0, hasTool: false },
+      { id: "p1", color: "#f00", name: "a", role: "climber", climberIndex: 0, platform: 0, tool: "", heldTools: [], selectedTool: "" },
     ]});
     buf.push({ tick: 2, phase: "playing", players: [
-      { id: "p1", color: "#f00", name: "a", role: "climber", climberIndex: 0, platform: 0, hasTool: false },
-      { id: "p2", color: "#00f", name: "b", role: "base", climberIndex: -1, platform: 0, hasTool: true },
+      { id: "p1", color: "#f00", name: "a", role: "climber", climberIndex: 0, platform: 0, tool: "", heldTools: [], selectedTool: "" },
+      { id: "p2", color: "#00f", name: "b", role: "base", climberIndex: -1, platform: 0, tool: "", heldTools: ["wrench", "hammer"], selectedTool: "wrench" },
     ]});
     const result = buf.getInterpolated();
     const ids = result.map((p) => p.id);

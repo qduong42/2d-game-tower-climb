@@ -16,6 +16,7 @@ export interface Envelope {
 
 export type Role = "base" | "climber";
 export type Phase = "waiting" | "playing" | "won";
+export type ToolType = "" | "wrench" | "hammer";
 
 // --- Server → Client ---
 
@@ -31,9 +32,11 @@ export interface PlayerState {
   color: string;
   name: string;
   role: Role;
-  climberIndex: number; // 0 or 1 for climbers; -1 for base operator
-  platform: number;     // 0=ground … NumPlatforms-1=top
-  hasTool: boolean;
+  climberIndex: number;    // 0 or 1 for climbers; -1 for base operator
+  platform: number;        // 0=ground … NumPlatforms-1=top
+  tool: ToolType;          // tool carried by this player ("" = none)
+  heldTools: ToolType[];   // BASE inventory (empty for climbers)
+  selectedTool: ToolType;  // BASE: which tool is queued to pass next
 }
 
 export interface SnapshotPayload {
