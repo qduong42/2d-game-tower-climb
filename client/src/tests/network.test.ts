@@ -6,6 +6,7 @@ import { MsgType } from "../schema";
 class FakeWS {
   onmessage: ((e: MessageEvent) => void) | null = null;
   onclose: (() => void) | null = null;
+  onerror: (() => void) | null = null;
   onopen: (() => void) | null = null;
   sent: string[] = [];
   readyState = 1; // OPEN
@@ -16,6 +17,8 @@ class FakeWS {
   receive(payload: unknown) {
     this.onmessage?.({ data: JSON.stringify(payload) } as MessageEvent);
   }
+
+  simulateError() { this.onerror?.(); }
 }
 
 describe("NetworkClient", () => {
@@ -28,7 +31,10 @@ describe("NetworkClient", () => {
     client = new NetworkClient();
   });
 
-  afterEach(() => { vi.unstubAllGlobals(); });
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.useRealTimers();
+  });
 
   it("sends Join on connect", () => {
     client.connect("ABCD", "alice", "#ff0000", "ws://localhost/r/ABCD");
@@ -71,5 +77,48 @@ describe("NetworkClient", () => {
     client.sendInput({ tick: 1, keys: { up: true, down: false, left: false, right: false, space: false } });
     fakeWS.onopen?.();
     expect(fakeWS.sent.length).toBeGreaterThanOrEqual(1);
+  });
+
+  // Regression: "stuck on connecting" — server reachable but Welcome never arrives
+  it("calls onClose after timeout when server never sends Welcome", () => {
+    vi.useFakeTimers();
+    let closeReason: string | null = null;
+    client.onClose((r) => { closeReason = r; });
+
+    client.connect("ABCD", "alice", "#ff0000", "ws://localhost/r/ABCD");
+    fakeWS.onopen?.(); // connection succeeded, Join sent, Welcome never arrives
+
+    vi.advanceTimersByTime(9_999);
+    expect(closeReason).toBeNull(); // not fired yet
+
+    vi.advanceTimersByTime(1);
+    expect(closeReason).toMatch(/did not respond/i);
+  });
+
+  // Regression: timer is cancelled when Welcome arrives before timeout
+  it("does not call onClose when Welcome arrives within timeout", () => {
+    vi.useFakeTimers();
+    let closeReason: string | null = null;
+    client.onClose((r) => { closeReason = r; });
+    client.onWelcome(() => {});
+
+    client.connect("ABCD", "alice", "#ff0000", "ws://localhost/r/ABCD");
+    fakeWS.onopen?.();
+    fakeWS.receive({ type: MsgType.Welcome, payload: { yourId: "p1", roomCode: "ABCD", tickRate: 20, color: "#e74c3c" } });
+
+    vi.advanceTimersByTime(15_000);
+    expect(closeReason).toBeNull();
+  });
+
+  // Regression: WebSocket error triggers onClose, not silent hang
+  it("calls onClose when WebSocket emits an error", () => {
+    let closeReason: string | null = null;
+    client.onClose((r) => { closeReason = r; });
+
+    client.connect("ABCD", "alice", "#ff0000", "ws://localhost/r/ABCD");
+    fakeWS.onopen?.();
+    fakeWS.simulateError();
+
+    expect(closeReason).toMatch(/error/i);
   });
 });

@@ -7,6 +7,8 @@ import {
   type InputPayload,
 } from "./schema";
 
+const WELCOME_TIMEOUT_MS = 10_000;
+
 export class NetworkClient {
   private ws: WebSocket | null = null;
   private onWelcomeCb: ((w: WelcomePayload) => void) | null = null;
@@ -14,8 +16,11 @@ export class NetworkClient {
   private onEventCb: ((e: EventPayload) => void) | null = null;
   private onCloseCb: ((reason: string) => void) | null = null;
   private pendingInput: InputPayload | null = null;
+  private welcomeTimer: ReturnType<typeof setTimeout> | null = null;
+  private closeReported = false;
 
   connect(roomCode: string, name: string, color: string, wsUrl?: string): void {
+    this.closeReported = false;
     const url = wsUrl ?? (() => {
       const protocol = location.protocol === "https:" ? "wss" : "ws";
       return `${protocol}://${location.host}/r/${roomCode}`;
@@ -32,12 +37,22 @@ export class NetworkClient {
         this.ws!.send(JSON.stringify({ type: MsgType.Input, payload: this.pendingInput }));
         this.pendingInput = null;
       }
+      this.welcomeTimer = setTimeout(() => {
+        this.welcomeTimer = null;
+        this.closeReported = true;
+        this.onCloseCb?.("Server did not respond — try again");
+        this.ws?.close();
+      }, WELCOME_TIMEOUT_MS);
     };
 
     this.ws.onmessage = (e: MessageEvent) => {
       const env = JSON.parse(e.data as string) as Envelope;
       switch (env.type) {
         case MsgType.Welcome:
+          if (this.welcomeTimer !== null) {
+            clearTimeout(this.welcomeTimer);
+            this.welcomeTimer = null;
+          }
           this.onWelcomeCb?.(env.payload as WelcomePayload);
           break;
         case MsgType.Snapshot:
@@ -51,12 +66,26 @@ export class NetworkClient {
 
     this.ws.onerror = () => {
       console.error("[network] WebSocket error");
-      this.onCloseCb?.("Connection error — check server is running");
+      if (this.welcomeTimer !== null) {
+        clearTimeout(this.welcomeTimer);
+        this.welcomeTimer = null;
+      }
+      if (!this.closeReported) {
+        this.closeReported = true;
+        this.onCloseCb?.("Connection error — check server is running");
+      }
     };
 
     this.ws.onclose = () => {
       console.warn("[network] connection closed");
-      this.onCloseCb?.("Disconnected");
+      if (this.welcomeTimer !== null) {
+        clearTimeout(this.welcomeTimer);
+        this.welcomeTimer = null;
+      }
+      if (!this.closeReported) {
+        this.closeReported = true;
+        this.onCloseCb?.("Disconnected");
+      }
     };
   }
 
