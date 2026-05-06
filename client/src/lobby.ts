@@ -13,7 +13,7 @@ function randomCode(): string {
 export function showLobby(container: HTMLElement): Promise<LobbyResult> {
   return new Promise((resolve) => {
     const codeFromUrl = location.pathname.startsWith("/r/")
-      ? location.pathname.slice(3).trim()
+      ? location.pathname.slice(3).trim().toUpperCase()
       : "";
 
     container.innerHTML = `
@@ -46,8 +46,15 @@ export function showLobby(container: HTMLElement): Promise<LobbyResult> {
       </div>
     `;
 
+    const codeInput = container.querySelector<HTMLInputElement>("#room-code")!;
+    codeInput.addEventListener("input", () => {
+      const pos = codeInput.selectionStart;
+      codeInput.value = codeInput.value.toUpperCase();
+      codeInput.setSelectionRange(pos, pos);
+    });
+
     container.querySelector("#create-btn")!.addEventListener("click", () => {
-      container.querySelector<HTMLInputElement>("#room-code")!.value = randomCode();
+      codeInput.value = randomCode();
     });
 
     let selectedColor = COLORS[0]!;
@@ -62,7 +69,6 @@ export function showLobby(container: HTMLElement): Promise<LobbyResult> {
     });
 
     container.querySelector("#join-btn")!.addEventListener("click", () => {
-      const codeInput = container.querySelector<HTMLInputElement>("#room-code")!;
       const code = codeInput.value.trim().toUpperCase();
       if (!code) {
         alert("Enter existing room code or hit NEW to generate a room code!");
