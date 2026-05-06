@@ -279,3 +279,80 @@ This is the work queue. The dispatcher reads it, picks the next unblocked compon
 5. Branch, test-first, implement, PR, update `STATUS.md`.
 
 If you are the dispatcher (human product owner): your job is §8.5 items 1-6, not implementation. Resist the pull to write code yourself when an agent could do it; spend the time on taste, playtests, and what to build next.
+
+---
+
+## 9. Level design — Milestone 2
+
+**Last updated:** 2026-05-06
+
+### 9.1 Tower layout
+
+The screen is divided into vertical segments, one per climber. Each segment has **three platforms**: bottom, middle, top. Platforms are fixed horizontal surfaces a player can stand on.
+
+```
+[TOP PLATFORM]      ← hand-off point / item transfer to next climber
+      |
+  (ladder)
+      |
+[MID PLATFORM]
+      |
+  (ladder)
+      |
+[BOT PLATFORM]      ← receives item handed from climber below
+```
+
+The base technician occupies a separate panel (not a climbing segment). The nacelle (repair target) sits above the top climber's top platform.
+
+### 9.2 Movement
+
+| Input | Action |
+|---|---|
+| `Space` + `Left` | Jump left to the platform on the same level in the segment to the left |
+| `Space` + `Right` | Jump right (same level, segment to the right) |
+| `Up` / `Down` | Move up/down the ladder within own segment |
+| `Left` / `Right` on ladder | Hold to resist wind (see §9.4) |
+
+Players cannot move to a different segment mid-climb — segments are owned. Jumping left/right only applies at platform level for item hand-offs.
+
+### 9.3 Item transfer
+
+- A player standing on their **top platform** while **holding an item** automatically transfers it to the next player's segment (appears at the bottom platform of the climber above).
+- The item **disappears from the sender** the moment the receiver is in range (on or near their bottom platform).
+- Only one item can be in transit per segment at a time — you must deliver before the next item is sent.
+- The top climber delivers to the nacelle the same way: stand at top platform with item → nacelle receives it.
+
+### 9.4 Wind mechanics
+
+Wind events are broadcast by the base technician's weather panel and hit all segments simultaneously (or with a short upward delay — TBD during playtesting).
+
+**On a platform:**
+- Wind knocks the player off the platform down to the next lower platform in their segment.
+- No way to resist wind while standing on a platform — you must accept the knockdown.
+- Carrying an item when knocked off: item is **dropped** onto the platform you land on (not lost, but you must pick it up again).
+
+**On a ladder (between platforms):**
+- Wind hits while climbing — player must hold the **arrow key opposite to the wind direction** for the duration of the gust to stay on the ladder.
+- If they fail (wrong key, no key, or carrying an item): they slide down to the platform below.
+- You **cannot hold on and carry an item at the same time** — drop the item first, brace, then re-pick-up. This is the core tension.
+
+### 9.5 Base technician
+
+- Sees a weather dashboard: wind speed, direction, and a countdown to next gust.
+- Can **queue items** to send up (wrench, sensor, coolant canister, etc.) — items appear at climber 1's bottom platform.
+- Cannot climb. Cannot be hit by wind.
+- The only player with full visibility of incoming weather; all other players depend on the base calling out gusts.
+
+### 9.6 Win / fail condition
+
+- **Win**: all required items delivered to the nacelle before the timer expires.
+- **Fail**: timer runs out, or an item is dropped off the tower entirely (falls below bottom platform — TBD whether this is possible or items always land on the lowest platform).
+- No player death — wind only moves you down, never off the tower permanently.
+
+### 9.7 Open questions for playtesting
+
+- Should wind direction vary per gust (left vs right), or always come from the same side?
+- How long is each gust? (Current guess: 2–3 seconds.)
+- Delay between segments for upward-travelling wind — creates a warning window or feels unfair?
+- Does the base technician have any active input beyond item queue (e.g. can brace a single climber remotely)?
+- How many items per round? (Starting guess: 3 items for a 3-minute round.)
