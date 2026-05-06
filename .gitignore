@@ -4,7 +4,7 @@
 
 # Node / Client
 client/node_modules/
-client/dist/
+cmd/server/dist/
 
 # Misc
 .DS_Store

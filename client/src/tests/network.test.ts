@@ -62,7 +62,8 @@ describe("NetworkClient", () => {
     client.onSnapshot((s) => { received = s; });
     fakeWS.receive({ type: MsgType.Snapshot, payload: snap });
 
-    expect(received?.tick).toBe(1);
+    expect(received).not.toBeNull();
+    expect(received!.tick).toBe(1);
   });
 
   it("send queues until connected", () => {

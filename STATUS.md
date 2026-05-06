@@ -5,30 +5,30 @@
 > Goal: 2–4 players open a shared URL, see each other's coloured dots move in real time.
 
 ### Wave 1 (schema — must complete before Wave 2)
-- [ ] S5 message schema (Go + TS) — not started
+- [x] S5 message schema (Go + TS) — done
 
 ### Wave 2 (parallel — blocked on Wave 1)
-- [ ] S1 WebSocket gateway — not started
-- [ ] S2 room manager — not started
-- [ ] C1 network client — not started
-- [ ] C5 lobby UI — not started
-- [ ] C6 menu overlay — not started
-- [ ] X1 deploy pipeline — not started
+- [x] S1 WebSocket gateway — done
+- [x] S2 room manager — done
+- [x] C1 network client — done
+- [x] C5 lobby UI — done
+- [x] C6 menu overlay — done
+- [ ] X1 deploy pipeline — not started (Render deploy, Task 18)
 - [x] X2 local dev setup — done (Makefile)
 
 ### Wave 3 (parallel — blocked on Wave 2)
-- [ ] S3 tick loop — not started
-- [ ] C2 input handler — not started
-- [ ] C3 renderer — not started
-- [ ] C4 interpolation buffer — not started
-- [ ] S6 server logging — not started
-- [ ] C7 client logging — not started
+- [x] S3 tick loop — done
+- [x] C2 input handler — done
+- [x] C3 renderer — done
+- [x] C4 interpolation buffer — done
+- [x] S6 server logging — done (slog JSON)
+- [x] C7 client logging — done (debug overlay)
 
 ### Integration
-- [ ] Wire server main.go — not started
-- [ ] Wire client main.ts — not started
-- [ ] Manual integration test — not started
-- [ ] Render deploy — not started
+- [x] Wire server main.go — done (embed + WebSocket gateway)
+- [x] Wire client main.ts — done (full game loop)
+- [x] Manual integration test — done (smoke test HTTP 200)
+- [ ] Render deploy — not started (Task 18)
 
 ## Milestone 2 — Vertical slice
 Not started. Begins after Milestone 1 is deployed and working.

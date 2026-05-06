@@ -11,7 +11,7 @@ import (
 	"github.com/qduong42/2d-game-tower-climb/internal/room"
 )
 
-//go:embed all:../../client/dist
+//go:embed all:dist
 var clientDist embed.FS
 
 func main() {
@@ -28,7 +28,7 @@ func main() {
 	mux := http.NewServeMux()
 	mux.Handle("/r/", gw)
 
-	static, err := fs.Sub(clientDist, "client/dist")
+	static, err := fs.Sub(clientDist, "dist")
 	if err != nil {
 		slog.Error("embed_sub_failed", "err", err)
 		os.Exit(1)

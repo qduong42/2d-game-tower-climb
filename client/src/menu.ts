@@ -2,7 +2,7 @@ export class MenuOverlay {
   private el: HTMLElement;
   private visible = false;
 
-  constructor(private container: HTMLElement, private onLeave: () => void) {
+  constructor(container: HTMLElement, private onLeave: () => void) {
     this.el = document.createElement("div");
     this.el.style.cssText = `
       display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);
