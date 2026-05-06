@@ -26,14 +26,23 @@ func main() {
 	gw := gateway.New(mgr)
 
 	mux := http.NewServeMux()
-	mux.Handle("/r/", gw)
-
 	static, err := fs.Sub(clientDist, "dist")
 	if err != nil {
 		slog.Error("embed_sub_failed", "err", err)
 		os.Exit(1)
 	}
-	mux.Handle("/", http.FileServer(http.FS(static)))
+	fileServer := http.FileServer(http.FS(static))
+
+	// /r/* routes: WebSocket upgrades go to the gateway; plain page loads
+	// (e.g. browser refresh on /r/ABCD) serve index.html so the SPA boots.
+	mux.HandleFunc("/r/", func(w http.ResponseWriter, r *http.Request) {
+		if r.Header.Get("Upgrade") == "websocket" {
+			gw.ServeHTTP(w, r)
+			return
+		}
+		http.ServeFileFS(w, r, static, "index.html")
+	})
+	mux.Handle("/", fileServer)
 
 	slog.Info("listening", "port", port)
 	if err := http.ListenAndServe(":"+port, mux); err != nil {
