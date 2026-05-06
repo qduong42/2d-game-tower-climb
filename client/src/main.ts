@@ -69,7 +69,7 @@ async function main() {
   });
 
   net.connect(roomCode, name, preferredColor);
-  input.start(canvas);
+  input.start(window);
   input.captureMouseOnCanvas(canvas);
 
   setInterval(() => {
