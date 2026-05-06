@@ -143,6 +143,10 @@ func (r *Room) run() {
 			r.mu.Lock()
 			delete(r.state.Players, id)
 			delete(r.inputs, id)
+			if len(clients) == 0 {
+				r.state = game.GameState{Phase: schema.PhaseWaiting, Players: make(map[string]*game.Player)}
+				r.inputs = make(map[string]schema.InputPayload)
+			}
 			r.mu.Unlock()
 			slog.Info("player_leave", "room", r.code, "player", id)
 			r.broadcast(clients, schema.Envelope{

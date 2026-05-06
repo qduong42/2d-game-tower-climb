@@ -11,10 +11,20 @@ func playingState(players map[string]*game.Player) game.GameState {
 	return game.GameState{Tick: 0, Phase: schema.PhasePlaying, Players: players}
 }
 
+// climber creates a MID climber (ClimberIndex=0, capped at MidMaxPlatform).
 func climber(id string, platform int, hasTool bool) *game.Player {
 	return &game.Player{
 		ID: id, Color: "#fff", Name: "test",
 		Role: schema.RoleClimber, ClimberIndex: 0,
+		Platform: platform, HasTool: hasTool,
+	}
+}
+
+// topClimber creates a TOP climber (ClimberIndex=1, can reach NumPlatforms-1).
+func topClimber(id string, platform int, hasTool bool) *game.Player {
+	return &game.Player{
+		ID: id, Color: "#fff", Name: "test",
+		Role: schema.RoleClimber, ClimberIndex: 1,
 		Platform: platform, HasTool: hasTool,
 	}
 }
@@ -51,12 +61,21 @@ func TestTick_ClimberCannotGoBelowGround(t *testing.T) {
 	}
 }
 
-func TestTick_ClimberCannotGoAboveTop(t *testing.T) {
+func TestTick_MidClimberCannotGoAboveMidMax(t *testing.T) {
+	mid := game.MidMaxPlatform
+	state := playingState(map[string]*game.Player{"p1": climber("p1", mid, false)})
+	next := game.Tick(state, map[string]schema.InputPayload{"p1": {Keys: schema.InputKeys{Up: true}}}, 1.0/30.0)
+	if next.Players["p1"].Platform != mid {
+		t.Errorf("MID climber: expected platform %d, got %d", mid, next.Players["p1"].Platform)
+	}
+}
+
+func TestTick_TopClimberCanReachTop(t *testing.T) {
 	top := game.NumPlatforms - 1
-	state := playingState(map[string]*game.Player{"p1": climber("p1", top, false)})
+	state := playingState(map[string]*game.Player{"p1": topClimber("p1", top-1, false)})
 	next := game.Tick(state, map[string]schema.InputPayload{"p1": {Keys: schema.InputKeys{Up: true}}}, 1.0/30.0)
 	if next.Players["p1"].Platform != top {
-		t.Errorf("expected platform %d, got %d", top, next.Players["p1"].Platform)
+		t.Errorf("TOP climber: expected platform %d, got %d", top, next.Players["p1"].Platform)
 	}
 }
 
@@ -101,9 +120,21 @@ func TestTick_SpaceDoesNotPassIfNoOneSamePlatform(t *testing.T) {
 	}
 }
 
-func TestTick_WinWhenClimberReachesTopWithTool(t *testing.T) {
+func TestTick_SpaceDoesNotSkipChain(t *testing.T) {
+	// Base cannot pass directly to TOP climber (index 1) — must go through MID (index 0)
 	state := playingState(map[string]*game.Player{
-		"c1": climber("c1", game.NumPlatforms-2, true),
+		"base": baseOp("base", true),
+		"top":  topClimber("top", 0, false), // same platform as base, but wrong index in chain
+	})
+	next := game.Tick(state, map[string]schema.InputPayload{"base": {Keys: schema.InputKeys{Space: true}}}, 1.0/30.0)
+	if !next.Players["base"].HasTool {
+		t.Error("base should not be able to pass directly to TOP — MID must be in chain")
+	}
+}
+
+func TestTick_WinWhenTopClimberReachesTopWithTool(t *testing.T) {
+	state := playingState(map[string]*game.Player{
+		"c1": topClimber("c1", game.NumPlatforms-2, true),
 	})
 	next := game.Tick(state, map[string]schema.InputPayload{"c1": {Keys: schema.InputKeys{Up: true}}}, 1.0/30.0)
 	if next.Phase != schema.PhaseWon {
@@ -113,11 +144,22 @@ func TestTick_WinWhenClimberReachesTopWithTool(t *testing.T) {
 
 func TestTick_NoWinWithoutTool(t *testing.T) {
 	state := playingState(map[string]*game.Player{
-		"c1": climber("c1", game.NumPlatforms-2, false),
+		"c1": topClimber("c1", game.NumPlatforms-2, false),
 	})
 	next := game.Tick(state, map[string]schema.InputPayload{"c1": {Keys: schema.InputKeys{Up: true}}}, 1.0/30.0)
 	if next.Phase == schema.PhaseWon {
 		t.Error("should not win without tool")
+	}
+}
+
+func TestTick_MidClimberCannotWin(t *testing.T) {
+	// MID climber is capped at MidMaxPlatform and cannot trigger win even with tool
+	state := playingState(map[string]*game.Player{
+		"c1": climber("c1", game.MidMaxPlatform, true),
+	})
+	next := game.Tick(state, map[string]schema.InputPayload{"c1": {Keys: schema.InputKeys{Up: true}}}, 1.0/30.0)
+	if next.Phase == schema.PhaseWon {
+		t.Error("MID climber should not be able to win")
 	}
 }
 
