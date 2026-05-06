@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/qduong42/2d-game-tower-climb/internal/game"
 	"github.com/qduong42/2d-game-tower-climb/internal/room"
 	"github.com/qduong42/2d-game-tower-climb/internal/schema"
 )
@@ -64,7 +65,7 @@ func TestSpec_SnapshotContainsJoinedPlayer(t *testing.T) {
 	}
 }
 
-func TestSpec_PlayerStartsAtCenter(t *testing.T) {
+func TestSpec_PlayerStartsInsideWorldBounds(t *testing.T) {
 	r := room.NewTestRoom("SPEC2")
 	go r.RunForTest()
 
@@ -74,8 +75,8 @@ func TestSpec_PlayerStartsAtCenter(t *testing.T) {
 	snap := drainUntilSnapshot(t, c.SendChan())
 	p := findPlayer(t, snap, "p1")
 
-	if p.X != 400 || p.Y != 300 {
-		t.Errorf("expected start position (400,300), got (%g,%g)", p.X, p.Y)
+	if p.X < 0 || p.X > game.WorldW || p.Y < 0 || p.Y > game.WorldH {
+		t.Errorf("spawn position (%g,%g) outside world bounds", p.X, p.Y)
 	}
 }
 

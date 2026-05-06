@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"log/slog"
+	"math/big"
 	"sync"
 	"time"
 
@@ -17,6 +18,11 @@ import (
 const tickRate = 20 // Hz
 
 var colorPalette = []string{"#e74c3c", "#3498db", "#2ecc71", "#f39c12", "#9b59b6", "#1abc9c", "#e67e22", "#8e44ad"}
+
+func randFloat(min, max float64) float64 {
+	n, _ := rand.Int(rand.Reader, big.NewInt(1<<24))
+	return min + (max-min)*float64(n.Int64())/float64(1<<24)
+}
 
 // pickColor returns the requested color if unused, otherwise the first available palette color.
 func pickColor(requested string, state game.GameState) string {
@@ -117,7 +123,7 @@ func (r *Room) run() {
 			r.mu.Lock()
 			assignedColor := pickColor(req.color, r.state)
 			r.state.Players[c.id] = &game.Player{
-				ID: c.id, X: 400, Y: 300, Color: assignedColor, Name: c.name,
+				ID: c.id, X: randFloat(60, game.WorldW-60), Y: randFloat(60, game.WorldH-60), Color: assignedColor, Name: c.name,
 			}
 			c.assignedColor = assignedColor
 			r.mu.Unlock()
