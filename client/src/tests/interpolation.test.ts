@@ -40,4 +40,22 @@ describe("InterpolationBuffer", () => {
     const result = buf.getInterpolated(1000 + 14 * 50);
     expect(result).toBeDefined();
   });
+
+  // Regression: second player joining was invisible until buffer caught up
+  it("includes a player present only in the after snapshot (just joined)", () => {
+    const t0 = 1000;
+    const buf = new InterpolationBuffer();
+    // before: only player 1
+    buf.push({ tick: 1, players: [{ id: "p1", x: 100, y: 0, color: "#f00", name: "a" }] }, t0);
+    // after: player 1 + player 2 who just joined
+    buf.push({ tick: 2, players: [
+      { id: "p1", x: 110, y: 0, color: "#f00", name: "a" },
+      { id: "p2", x: 400, y: 300, color: "#00f", name: "b" },
+    ]}, t0 + 50);
+
+    const result = buf.getInterpolated(t0 + 25 + RENDER_DELAY_MS);
+    const ids = result.map((p) => p.id);
+    expect(ids).toContain("p1");
+    expect(ids).toContain("p2"); // was missing before fix
+  });
 });

@@ -49,16 +49,18 @@ function interpolatePlayers(
   b: PlayerState[],
   t: number,
 ): PlayerState[] {
+  const aMap = new Map(a.map((p) => [p.id, p]));
   const bMap = new Map(b.map((p) => [p.id, p]));
-  return a.map((pa) => {
+  const result: PlayerState[] = a.map((pa) => {
     const pb = bMap.get(pa.id);
     if (!pb) return pa;
-    return {
-      ...pa,
-      x: lerp(pa.x, pb.x, t),
-      y: lerp(pa.y, pb.y, t),
-    };
+    return { ...pa, x: lerp(pa.x, pb.x, t), y: lerp(pa.y, pb.y, t) };
   });
+  // Include players present in `after` but not `before` (just joined)
+  for (const pb of b) {
+    if (!aMap.has(pb.id)) result.push(pb);
+  }
+  return result;
 }
 
 function lerp(a: number, b: number, t: number): number {
