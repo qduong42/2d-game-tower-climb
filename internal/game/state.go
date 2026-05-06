@@ -4,8 +4,8 @@ import "github.com/qduong42/2d-game-tower-climb/internal/schema"
 
 const (
 	MaxPlayers     = 3
-	NumPlatforms   = 4             // 0=ground, 1, 2, 3=top
-	MidMaxPlatform = NumPlatforms - 2 // ClimberIndex 0 (MID) caps here
+	NumPlatforms   = 7                // 0=ground…3=handoff…6=TOP summit
+	MidMaxPlatform = NumPlatforms / 2 // MID caps at platform 3; TOP spawns here and climbs to 6
 )
 
 // Player holds mutable per-player state.

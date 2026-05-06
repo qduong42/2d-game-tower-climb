@@ -132,6 +132,21 @@ func TestTick_SpaceDoesNotSkipChain(t *testing.T) {
 	}
 }
 
+func TestTick_MidPassesToolToTopAtHandoffPlatform(t *testing.T) {
+	// TOP climbs up to MidMaxPlatform to meet MID and receive the tool
+	state := playingState(map[string]*game.Player{
+		"mid": climber("mid", game.MidMaxPlatform, true),
+		"top": topClimber("top", game.MidMaxPlatform, false),
+	})
+	next := game.Tick(state, map[string]schema.InputPayload{"mid": {Keys: schema.InputKeys{Space: true}}}, 1.0/30.0)
+	if next.Players["mid"].HasTool {
+		t.Error("MID should no longer have the tool after passing")
+	}
+	if !next.Players["top"].HasTool {
+		t.Error("TOP should have received the tool")
+	}
+}
+
 func TestTick_WinWhenTopClimberReachesTopWithTool(t *testing.T) {
 	state := playingState(map[string]*game.Player{
 		"c1": topClimber("c1", game.NumPlatforms-2, true),

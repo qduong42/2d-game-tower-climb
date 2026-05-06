@@ -27,12 +27,10 @@ func Tick(state GameState, inputs map[string]schema.InputPayload, dt float64) Ga
 		prev := p.PrevKeys
 
 		if p.Role == schema.RoleClimber {
-			// MID climber (index 0) is capped at MidMaxPlatform; TOP climber (index 1) goes to the top
 			maxPlatform := NumPlatforms - 1
 			if p.ClimberIndex == 0 {
 				maxPlatform = MidMaxPlatform
 			}
-			// Rising edge only — one platform step per keypress
 			if inp.Keys.Up && !prev.Up && p.Platform < maxPlatform {
 				p.Platform++
 			}
@@ -41,8 +39,8 @@ func Tick(state GameState, inputs map[string]schema.InputPayload, dt float64) Ga
 			}
 		}
 
-		// Pass tool along the chain: base(-1) → MID(0) → TOP(1).
-		// Must be on the same platform as the target.
+		// Pass tool along the chain: base(-1) → MID(0) → TOP(1), same platform only.
+		// MID and TOP must meet at MidMaxPlatform for the handoff.
 		if inp.Keys.Space && !prev.Space && p.HasTool {
 			targetIndex := p.ClimberIndex + 1 // base(-1)→0, MID(0)→1
 			for otherID, other := range next.Players {

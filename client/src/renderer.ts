@@ -1,7 +1,8 @@
 import type { PlayerState, SnapshotPayload } from "./schema";
 
-const NUM_PLATFORMS = 4;
-const PLATFORM_Y = [490, 360, 230, 100]; // platform 0–3, bottom to top
+const NUM_PLATFORMS = 7;
+const MID_MAX_PLATFORM = NUM_PLATFORMS / 2; // = 3, the handoff platform
+const PLATFORM_Y = [540, 460, 380, 300, 220, 140, 60]; // platform 0–6, bottom to top
 const PLAYER_RADIUS = 14;
 const PLATFORM_W = 100;
 const COL_X = 400; // climber column centered for single-column view
@@ -55,28 +56,28 @@ export class CanvasRenderer {
     ctx.fillText(me.climberIndex === 0 ? "CLIMBER — MID" : "CLIMBER — TOP", canvas.width / 2, 30);
 
     // Floor label for own position
-    ctx.fillStyle = "#aaa";
     ctx.font = "11px monospace";
     ctx.textAlign = "left";
     for (let i = 0; i < NUM_PLATFORMS; i++) {
-      const label = i === 0 ? "Ground" : i === NUM_PLATFORMS - 1 ? "Top ★" : `Floor ${i}`;
+      const isHandoff = i === MID_MAX_PLATFORM;
+      const label = i === 0 ? "Ground" : i === NUM_PLATFORMS - 1 ? "Top ★" : isHandoff ? "Handoff" : `Floor ${i}`;
+      ctx.fillStyle = isHandoff ? "#e67e22" : "#aaa";
       ctx.fillText(label, COL_X + PLATFORM_W / 2 + 10, PLATFORM_Y[i]! + 4);
     }
 
-    // SPACE hint for MID climber: show when at their max platform with tool
-    // and prompt once TOP has reached the summit
-    if (me.climberIndex === 0 && me.hasTool && me.platform === NUM_PLATFORMS - 2) {
+    // SPACE hint: MID at the handoff platform passes to TOP when TOP is also here
+    if (me.climberIndex === 0 && me.hasTool && me.platform === MID_MAX_PLATFORM) {
       const top = snap.players.find(p => p.role === "climber" && p.climberIndex === 1);
-      if (top && top.platform === NUM_PLATFORMS - 1) {
+      if (top && top.platform === MID_MAX_PLATFORM) {
         ctx.fillStyle = "#2ecc71";
         ctx.font = "bold 13px monospace";
         ctx.textAlign = "center";
-        ctx.fillText("Press SPACE to pass tool ↑", canvas.width / 2, 490);
+        ctx.fillText("Press SPACE to pass tool to TOP ↑", canvas.width / 2, canvas.height - 20);
       } else {
         ctx.fillStyle = "#aaa";
         ctx.font = "13px monospace";
         ctx.textAlign = "center";
-        ctx.fillText("Waiting for TOP to reach the summit…", canvas.width / 2, 490);
+        ctx.fillText("Waiting for TOP climber to reach this level…", canvas.width / 2, canvas.height - 20);
       }
     }
   }
@@ -194,8 +195,8 @@ export class CanvasRenderer {
 
     // Mini tower showing position
     const towerX = x + W / 2;
-    const platformH = 36;
     const towerTop = y + 125;
+    const platformH = Math.floor((H - 130) / NUM_PLATFORMS); // shrink rows to fit card
     for (let i = NUM_PLATFORMS - 1; i >= 0; i--) {
       const py = towerTop + (NUM_PLATFORMS - 1 - i) * platformH;
       const isHere = p.platform === i;
@@ -207,7 +208,7 @@ export class CanvasRenderer {
       ctx.fill();
       ctx.stroke();
 
-      const label = i === 0 ? "Ground" : i === NUM_PLATFORMS - 1 ? "Top ★" : `Floor ${i}`;
+      const label = i === 0 ? "Ground" : i === NUM_PLATFORMS - 1 ? "Top ★" : i === MID_MAX_PLATFORM ? "Handoff" : `Floor ${i}`;
       ctx.fillStyle = isHere ? "#fff" : "#556";
       ctx.font = isHere ? "bold 10px monospace" : "10px monospace";
       ctx.textAlign = "center";
@@ -239,8 +240,9 @@ export class CanvasRenderer {
     for (let i = 0; i < NUM_PLATFORMS; i++) {
       const y = PLATFORM_Y[i]!;
       const isTop = i === NUM_PLATFORMS - 1;
-      ctx.strokeStyle = isTop ? "#ffd700" : "#556";
-      ctx.lineWidth = isTop ? 4 : 2;
+      const isHandoff = i === MID_MAX_PLATFORM;
+      ctx.strokeStyle = isTop ? "#ffd700" : isHandoff ? "#e67e22" : "#556";
+      ctx.lineWidth = isTop ? 4 : isHandoff ? 3 : 2;
       ctx.beginPath();
       ctx.moveTo(x - PLATFORM_W / 2, y);
       ctx.lineTo(x + PLATFORM_W / 2, y);
@@ -295,7 +297,7 @@ export class CanvasRenderer {
     ctx.font = "10px monospace";
     ctx.textAlign = "left";
     const label = p.role === "base" ? "BASE" : p.climberIndex === 0 ? "MID" : "TOP";
-    const floor = p.platform === 0 ? "Ground" : p.platform === NUM_PLATFORMS - 1 ? "Top" : `Floor ${p.platform}`;
+    const floor = p.platform === 0 ? "Ground" : p.platform === NUM_PLATFORMS - 1 ? "Top" : p.platform === MID_MAX_PLATFORM ? "Handoff" : `Floor ${p.platform}`;
     ctx.fillText(`${label}: ${p.name}`, x + 36, y + 18);
     ctx.fillStyle = "#aaa";
     ctx.fillText(`${floor}${p.hasTool ? " ⚙" : ""}`, x + 36, y + 34);
