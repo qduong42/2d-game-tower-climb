@@ -5,12 +5,12 @@ RUN npm ci
 COPY client/ .
 RUN npm run build
 
-FROM golang:1.22-alpine AS server-build
+FROM golang:1.23-alpine AS server-build
 WORKDIR /app
 COPY go.mod go.sum ./
 RUN go mod download
 COPY . .
-COPY --from=client-build /app/client/dist ./client/dist
+COPY --from=client-build /app/cmd/server/dist ./cmd/server/dist
 RUN go build -o server ./cmd/server
 
 FROM alpine:3.19
