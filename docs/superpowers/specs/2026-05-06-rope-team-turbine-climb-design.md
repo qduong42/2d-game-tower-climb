@@ -324,17 +324,24 @@ Players cannot move to a different segment mid-climb — segments are owned. Jum
 
 ### 9.4 Wind mechanics
 
-Wind events are broadcast by the base technician's weather panel and hit all segments simultaneously (or with a short upward delay — TBD during playtesting).
+Each gust has two phases:
+
+| Phase | Visible to | Description |
+|---|---|---|
+| **Warning** | Base operator only | Countdown on weather dashboard before gust hits. Climbers do not see it — base must call it out verbally. |
+| **Duration** | All players | Active gust timer shown on every screen while wind is blowing. |
+
+Wind direction varies per gust (left or right) — shown on the base operator's dashboard during the warning phase, and as a visible wind indicator on all screens during the active phase.
 
 **On a platform:**
 - Wind knocks the player off the platform down to the next lower platform in their segment.
 - No way to resist wind while standing on a platform — you must accept the knockdown.
-- Carrying an item when knocked off: item is **dropped** onto the platform you land on (not lost, but you must pick it up again).
+- Carrying an item when knocked off: item is **dropped** onto the landing platform (not lost).
 
 **On a ladder (between platforms):**
-- Wind hits while climbing — player must hold the **arrow key opposite to the wind direction** for the duration of the gust to stay on the ladder.
+- Player must hold the **arrow key opposite to the wind direction** for the duration of the gust to stay on the ladder.
 - If they fail (wrong key, no key, or carrying an item): they slide down to the platform below.
-- You **cannot hold on and carry an item at the same time** — drop the item first, brace, then re-pick-up. This is the core tension.
+- You **cannot hold on and carry an item at the same time** — the core tension of the game.
 
 ### 9.5 Base technician
 
@@ -369,8 +376,6 @@ This means a fumble during a gust is always recoverable — you climb back down 
 
 ### 9.9 Open questions for playtesting
 
-- Should wind direction vary per gust (left vs right), or always come from the same side?
-- How long is each gust? (Current guess: 2–3 seconds.)
 - Upward-travelling wind delay between segments — creates a warning window or feels unfair?
 - How many items per round? (Starting guess: 3 items for a 3-minute round.)
 
@@ -422,7 +427,7 @@ This means a fumble during a gust is always recoverable — you climb back down 
 - Top platform shows two repair components:
   - **Blade** — right side
   - **Generator** (drawn as a box) — left side
-- Repair list visible only to this player: which component needs which tool.
+- Repair list visible only to this player: shows **one item at a time** — the next required tool is revealed only after the previous one is successfully delivered.
 - Tools appear at their bottom platform when Climber 1 reaches their top platform carrying the tool.
 
 ### 10.5 Tool transfer chain
@@ -514,10 +519,31 @@ Each test describes observable behaviour from a player's point of view.
 | D3 | 30s expires without reconnect | All players returned to lobby, same room code, roles cleared |
 | D4 | 4th player tries to join during freeze | Still rejected — room is locked |
 
+#### Wind timing and information asymmetry
+
+| # | Scenario | Expected |
+|---|---|---|
+| G1 | Gust incoming — warning phase | Base operator sees countdown + direction on dashboard. Climbers see nothing. |
+| G2 | Gust hits — active phase | All players see active gust timer and wind direction indicator on screen |
+| G3 | Wind blows left, climber on ladder holds Right | Climber stays on ladder |
+| G4 | Wind blows left, climber on ladder holds Left | Climber slides down to platform below |
+| G5 | Wind blows right, climber on ladder holds Right | Climber slides down to platform below |
+| G6 | Wind blows right, climber on ladder holds Left | Climber stays on ladder |
+| G7 | Gust ends | Wind indicator disappears, all players free to move normally |
+
+#### Repair list (Climber 2)
+
+| # | Scenario | Expected |
+|---|---|---|
+| P1 | Game starts | Climber 2 sees first required tool only (e.g. "Blade needs: Wrench") |
+| P2 | First tool delivered successfully | First item clears, second item revealed (e.g. "Generator needs: Sensor") |
+| P3 | Wrong tool delivered to correct component | Rejected, same item still shown in repair list |
+| P4 | All items delivered | Repair list shows complete, win condition triggers |
+
 #### Win / fail
 
 | # | Scenario | Expected |
 |---|---|---|
 | V1 | All required items delivered before timer | Win screen shown to all players |
 | V2 | Timer expires before all items delivered | Fail screen shown to all players |
-| V3 | Win screen shown | Room returns to lobby state (cursor party), same code |
+| V3 | Win or fail screen shown | Room returns to lobby state (cursor party), same code |
