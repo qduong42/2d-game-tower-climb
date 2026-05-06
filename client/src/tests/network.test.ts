@@ -44,7 +44,7 @@ describe("NetworkClient", () => {
     client.connect("ABCD", "alice", "#ff0000", "ws://localhost/r/ABCD");
     fakeWS.onopen?.();
 
-    const welcome: WelcomePayload = { yourId: "p1", roomCode: "ABCD", tickRate: 20 };
+    const welcome: WelcomePayload = { yourId: "p1", roomCode: "ABCD", tickRate: 20, color: "#e74c3c" };
     let received: WelcomePayload | null = null;
     client.onWelcome((w) => { received = w; });
     fakeWS.receive({ type: MsgType.Welcome, payload: welcome });

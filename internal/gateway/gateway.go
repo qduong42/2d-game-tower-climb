@@ -71,6 +71,7 @@ func (g *Gateway) handshake(ctx context.Context, conn *websocket.Conn, code stri
 
 	rm := g.mgr.GetOrCreate(code)
 	client := room.NewConnectedClient(join.Name, conn)
+	rm.Join(client, join.Color) // blocks until color is assigned
 
 	welcome := schema.Envelope{
 		Type: schema.MsgWelcome,
@@ -78,6 +79,7 @@ func (g *Gateway) handshake(ctx context.Context, conn *websocket.Conn, code stri
 			YourID:   client.ID(),
 			RoomCode: code,
 			TickRate: 20,
+			Color:    client.AssignedColor(),
 		}),
 	}
 	data, _ = json.Marshal(welcome)
@@ -85,7 +87,6 @@ func (g *Gateway) handshake(ctx context.Context, conn *websocket.Conn, code stri
 		return nil, nil
 	}
 
-	rm.Join(client, join.Color)
 	return client, rm
 }
 

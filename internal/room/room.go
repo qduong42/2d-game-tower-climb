@@ -16,17 +16,38 @@ import (
 
 const tickRate = 20 // Hz
 
+var colorPalette = []string{"#e74c3c", "#3498db", "#2ecc71", "#f39c12", "#9b59b6", "#1abc9c", "#e67e22", "#8e44ad"}
+
+// pickColor returns the requested color if unused, otherwise the first available palette color.
+func pickColor(requested string, state game.GameState) string {
+	used := make(map[string]bool, len(state.Players))
+	for _, p := range state.Players {
+		used[p.Color] = true
+	}
+	if !used[requested] {
+		return requested
+	}
+	for _, c := range colorPalette {
+		if !used[c] {
+			return c
+		}
+	}
+	return requested // fallback: allow duplicate if palette exhausted
+}
+
 // Client represents one connected player.
 type Client struct {
-	id   string
-	name string
-	conn *websocket.Conn
-	send chan schema.Envelope
+	id            string
+	name          string
+	conn          *websocket.Conn
+	send          chan schema.Envelope
+	assignedColor string // set by room after color deduplication
 }
 
 type joinReq struct {
 	client *Client
 	color  string
+	done   chan struct{} // closed after color is assigned
 }
 
 // Room manages one game session.
@@ -63,9 +84,11 @@ func (r *Room) stop() {
 	r.once.Do(func() { close(r.done) })
 }
 
-// Join queues a new client into the room.
+// Join queues a new client into the room and waits for color assignment.
 func (r *Room) Join(c *Client, color string) {
-	r.join <- joinReq{client: c, color: color}
+	done := make(chan struct{})
+	r.join <- joinReq{client: c, color: color, done: done}
+	<-done
 }
 
 // Leave queues a client removal.
@@ -92,10 +115,13 @@ func (r *Room) run() {
 			c := req.client
 			clients[c.id] = c
 			r.mu.Lock()
+			assignedColor := pickColor(req.color, r.state)
 			r.state.Players[c.id] = &game.Player{
-				ID: c.id, X: 400, Y: 300, Color: req.color, Name: c.name,
+				ID: c.id, X: 400, Y: 300, Color: assignedColor, Name: c.name,
 			}
+			c.assignedColor = assignedColor
 			r.mu.Unlock()
+			close(req.done)
 			slog.Info("player_join", "room", r.code, "player", c.id, "name", c.name)
 			r.broadcast(clients, schema.Envelope{
 				Type:    schema.MsgEvent,
@@ -206,6 +232,9 @@ func (c *Client) SendChan() <-chan schema.Envelope { return c.send }
 
 // ID returns the player's unique ID.
 func (c *Client) ID() string { return c.id }
+
+// AssignedColor returns the color the room gave this player (available after Join is processed).
+func (c *Client) AssignedColor() string { return c.assignedColor }
 
 // Conn returns the underlying WebSocket connection.
 func (c *Client) Conn() *websocket.Conn { return c.conn }

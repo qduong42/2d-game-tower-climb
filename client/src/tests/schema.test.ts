@@ -17,7 +17,7 @@ describe("schema types and constants", () => {
   });
 
   it("Envelope can be constructed and serialized", () => {
-    const payload: WelcomePayload = { yourId: "p1", roomCode: "ABCD", tickRate: 20 };
+    const payload: WelcomePayload = { yourId: "p1", roomCode: "ABCD", tickRate: 20, color: "#e74c3c" };
     const env: Envelope = { type: MsgType.Welcome, payload };
     const json = JSON.stringify(env);
     const parsed = JSON.parse(json) as Envelope;

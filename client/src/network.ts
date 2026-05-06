@@ -12,6 +12,7 @@ export class NetworkClient {
   private onWelcomeCb: ((w: WelcomePayload) => void) | null = null;
   private onSnapshotCb: ((s: SnapshotPayload) => void) | null = null;
   private onEventCb: ((e: EventPayload) => void) | null = null;
+  private onCloseCb: ((reason: string) => void) | null = null;
   private pendingInput: InputPayload | null = null;
 
   connect(roomCode: string, name: string, color: string, wsUrl?: string): void {
@@ -48,8 +49,14 @@ export class NetworkClient {
       }
     };
 
+    this.ws.onerror = () => {
+      console.error("[network] WebSocket error");
+      this.onCloseCb?.("Connection error — check server is running");
+    };
+
     this.ws.onclose = () => {
       console.warn("[network] connection closed");
+      this.onCloseCb?.("Disconnected");
     };
   }
 
@@ -65,6 +72,7 @@ export class NetworkClient {
   onWelcome(cb: (w: WelcomePayload) => void): void { this.onWelcomeCb = cb; }
   onSnapshot(cb: (s: SnapshotPayload) => void): void { this.onSnapshotCb = cb; }
   onEvent(cb: (e: EventPayload) => void): void { this.onEventCb = cb; }
+  onClose(cb: (reason: string) => void): void { this.onCloseCb = cb; }
 
   disconnect(): void {
     this.ws?.close();

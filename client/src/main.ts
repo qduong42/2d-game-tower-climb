@@ -13,7 +13,7 @@ async function main() {
   const app = document.getElementById("app")!;
   initDebugOverlay();
 
-  const { roomCode, name, color } = await showLobby(app);
+  const { roomCode, name, color: preferredColor } = await showLobby(app);
 
   const canvas = document.createElement("canvas");
   canvas.width = 800;
@@ -27,7 +27,15 @@ async function main() {
   const net = new NetworkClient();
   new MenuOverlay(app, () => { net.disconnect(); location.reload(); });
 
+  // Connection status overlay
+  const statusEl = document.createElement("div");
+  statusEl.style.cssText = "position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:#fff;font:1rem monospace;pointer-events:none";
+  statusEl.textContent = "Connecting...";
+  app.style.position = "relative";
+  app.appendChild(statusEl);
+
   let myId = "";
+  let myColor = preferredColor;
   let tick = 0;
   let lastSnap: SnapshotPayload | null = null;
   let frameCount = 0;
@@ -35,7 +43,9 @@ async function main() {
 
   net.onWelcome((w) => {
     myId = w.yourId;
-    logEvent("welcome", { myId, roomCode: w.roomCode });
+    myColor = w.color;
+    statusEl.textContent = "";
+    logEvent("welcome", { myId, roomCode: w.roomCode, color: myColor });
   });
 
   net.onSnapshot((snap) => {
@@ -47,7 +57,12 @@ async function main() {
     logEvent("event", { type: e.eventType, player: e.playerId });
   });
 
-  net.connect(roomCode, name, color);
+  net.onClose((reason) => {
+    statusEl.textContent = `⚠ ${reason} — refresh to reconnect`;
+    statusEl.style.color = "#e74c3c";
+  });
+
+  net.connect(roomCode, name, preferredColor);
   input.start(canvas);
   input.captureMouseOnCanvas(canvas);
 

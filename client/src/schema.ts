@@ -20,6 +20,7 @@ export interface WelcomePayload {
   yourId: string;
   roomCode: string;
   tickRate: number;
+  color: string; // actual assigned color (may differ if chosen color was taken)
 }
 
 export interface PlayerState {
