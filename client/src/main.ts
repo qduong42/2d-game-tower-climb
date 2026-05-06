@@ -34,6 +34,12 @@ async function main() {
   app.style.position = "relative";
   app.appendChild(statusEl);
 
+  // Room code badge — top-left of canvas
+  const roomBadge = document.createElement("div");
+  roomBadge.style.cssText = "position:absolute;top:8px;left:8px;background:rgba(0,0,0,0.55);color:#fff;font:bold 0.85rem monospace;padding:4px 10px;border-radius:4px;pointer-events:none;letter-spacing:0.1em";
+  roomBadge.textContent = `Room: ${roomCode}`;
+  app.appendChild(roomBadge);
+
   let myId = "";
   let myColor = preferredColor;
   let tick = 0;
