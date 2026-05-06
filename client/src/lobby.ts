@@ -62,6 +62,14 @@ export function showLobby(container: HTMLElement): Promise<LobbyResult> {
     });
 
     container.querySelector("#join-btn")!.addEventListener("click", () => {
+      const codeInput = container.querySelector<HTMLInputElement>("#room-code")!;
+      const code = codeInput.value.trim().toUpperCase();
+      if (!code) {
+        alert("Enter existing room code or hit NEW to generate a room code!");
+        codeInput.focus();
+        return;
+      }
+
       const nameInput = container.querySelector<HTMLInputElement>("#player-name")!;
       const name = nameInput.value.trim();
       if (!name) {
@@ -72,7 +80,7 @@ export function showLobby(container: HTMLElement): Promise<LobbyResult> {
         nameInput.focus();
         return;
       }
-      const code = (container.querySelector<HTMLInputElement>("#room-code")!.value || "ROOM").toUpperCase();
+
       container.innerHTML = "";
       resolve({ roomCode: code, name, color: selectedColor });
     });
