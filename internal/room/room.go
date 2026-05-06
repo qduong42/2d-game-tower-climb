@@ -192,8 +192,13 @@ func mustMarshal(v any) json.RawMessage {
 	return b
 }
 
-// writePump drains c.send into the WebSocket connection.
+const pingInterval = 30 * time.Second
+
+// writePump drains c.send into the WebSocket connection and sends periodic
+// pings to keep the connection alive through proxy idle timeouts.
 func writePump(ctx context.Context, c *Client) {
+	ping := time.NewTicker(pingInterval)
+	defer ping.Stop()
 	for {
 		select {
 		case <-ctx.Done():
@@ -204,6 +209,10 @@ func writePump(ctx context.Context, c *Client) {
 			}
 			data, _ := json.Marshal(env)
 			if err := c.conn.Write(ctx, websocket.MessageText, data); err != nil {
+				return
+			}
+		case <-ping.C:
+			if err := c.conn.Ping(ctx); err != nil {
 				return
 			}
 		}
