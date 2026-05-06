@@ -55,6 +55,14 @@ export class CanvasRenderer {
     ctx.textAlign = "center";
     ctx.fillText(me.climberIndex === 0 ? "CLIMBER — MID" : "CLIMBER — TOP", canvas.width / 2, 30);
 
+    // Tool display — placeholder for sprite
+    if (me.tool) {
+      ctx.fillStyle = "#ffd700";
+      ctx.font = "bold 13px monospace";
+      ctx.textAlign = "center";
+      ctx.fillText(`⚙ ${me.tool.toUpperCase()}`, canvas.width / 2, 50);
+    }
+
     // Floor label for own position
     ctx.font = "11px monospace";
     ctx.textAlign = "left";
