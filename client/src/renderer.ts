@@ -342,28 +342,6 @@ export class CanvasRenderer {
     }
   }
 
-  private drawCornerStatus(p: PlayerState, x: number, y: number): void {
-    const { ctx } = this;
-    ctx.fillStyle = "#1e2040cc";
-    ctx.beginPath();
-    ctx.roundRect(x, y, 150, 48, 4);
-    ctx.fill();
-
-    ctx.beginPath();
-    ctx.arc(x + 20, y + 24, 10, 0, Math.PI * 2);
-    ctx.fillStyle = p.color;
-    ctx.fill();
-
-    ctx.fillStyle = "#fff";
-    ctx.font = "10px monospace";
-    ctx.textAlign = "left";
-    const label = p.role === "base" ? "BASE" : p.climberIndex === 0 ? "MID" : "TOP";
-    const floor = p.platform === 0 ? "Ground" : p.platform === NUM_PLATFORMS - 1 ? "Top" : p.platform === MID_MAX_PLATFORM ? "Handoff" : `Floor ${p.platform}`;
-    ctx.fillText(`${label}: ${p.name}`, x + 36, y + 18);
-    ctx.fillStyle = "#aaa";
-    ctx.fillText(`${floor}${p.tool ? " ⚙" : ""}`, x + 36, y + 34);
-  }
-
   private clear(): void {
     const { ctx, canvas } = this;
     ctx.fillStyle = "#1a1a2e";
