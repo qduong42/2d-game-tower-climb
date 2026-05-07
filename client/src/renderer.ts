@@ -319,7 +319,7 @@ export class CanvasRenderer {
       ctx.fillStyle = "#f39c12";
       ctx.font = "bold 13px monospace";
       ctx.textAlign = "center";
-      ctx.fillText(`⚡ Wind gust coming in ${secsLeft}s — warn the climbers!`, cx, y);
+      ctx.fillText(`⚡ Wind gust coming in ${secsLeft}s — warn the climbers, hold B to brace!`, cx, y);
     } else if (windPhase === "active") {
       ctx.fillStyle = "#e74c3c";
       ctx.font = "bold 14px monospace";
