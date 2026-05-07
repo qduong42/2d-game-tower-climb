@@ -39,6 +39,7 @@ describe("schema types and constants", () => {
     const s: SnapshotPayload = {
       tick: 42,
       phase: "playing",
+      requiredTool: "",
       players: [{
         id: "p1", color: "#ff0000", name: "alice",
         role: "climber", climberIndex: 0, platform: 2, tool: "", heldTools: [], selectedTool: "",

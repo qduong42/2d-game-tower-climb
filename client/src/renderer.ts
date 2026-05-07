@@ -128,6 +128,14 @@ export class CanvasRenderer {
         ctx.fillText("Waiting for MID climber to reach handoff floor…", canvas.width / 2, canvas.height - 20);
       }
     }
+
+    // Wrong tool warning — TOP at summit with the wrong tool
+    if (me.climberIndex === 1 && me.platform === NUM_PLATFORMS - 1 && me.tool && me.tool !== snap.requiredTool) {
+      ctx.fillStyle = "#e74c3c";
+      ctx.font = "bold 15px monospace";
+      ctx.textAlign = "center";
+      ctx.fillText("Wrong tool! Pass it down again!", canvas.width / 2, canvas.height - 20);
+    }
   }
 
   // Returns the canvas X for a player in a climber's view.

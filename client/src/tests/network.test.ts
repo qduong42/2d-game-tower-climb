@@ -71,7 +71,7 @@ describe("NetworkClient", () => {
     client.connect("ABCD", "alice", "#ff0000", "ws://localhost/r/ABCD");
     fakeWS.onopen?.();
 
-    const snap: SnapshotPayload = { tick: 1, phase: "waiting", players: [] };
+    const snap: SnapshotPayload = { tick: 1, phase: "waiting", requiredTool: "", players: [] };
     let received: SnapshotPayload | null = null;
     client.onSnapshot((s) => { received = s; });
     fakeWS.receive({ type: MsgType.Snapshot, payload: snap });
