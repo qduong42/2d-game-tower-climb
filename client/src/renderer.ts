@@ -2,7 +2,7 @@ import type { PlayerState, SnapshotPayload } from "./schema";
 
 const NUM_PLATFORMS = 7;
 const MID_MAX_PLATFORM = Math.floor(NUM_PLATFORMS / 2); // = 3, the handoff platform
-const PLATFORM_Y = [540, 460, 380, 300, 220, 140, 60]; // platform 0–6, bottom to top
+const PLATFORM_Y = [540, 460, 380, 300, 220, 140, 120]; // platform 0–6, bottom to top
 const PLAYER_RADIUS = 14;
 const PLATFORM_W = 100;
 const COL_X = 400; // climber column centered for single-column view
@@ -69,7 +69,7 @@ export class CanvasRenderer {
       ctx.fillStyle = "#ffd700";
       ctx.font = "bold 13px monospace";
       ctx.textAlign = "center";
-      ctx.fillText(`⚙ ${me.tool.toUpperCase()}`, canvas.width / 2, me.climberIndex === 1 ? 68 : 50);
+      ctx.fillText(`⚙ ${me.tool.toUpperCase()}`, canvas.width / 2, me.climberIndex === 1 ? 85 : 50);
     }
 
     // Floor label for own position
@@ -130,7 +130,7 @@ export class CanvasRenderer {
     }
 
     // Wrong tool warning — TOP at summit with the wrong tool
-    if (me.climberIndex === 1 && me.platform === NUM_PLATFORMS - 1 && me.tool && me.tool !== snap.requiredTool) {
+    if (me.climberIndex === 1 && me.platform === NUM_PLATFORMS - 1 && me.tool && snap.requiredTool && me.tool !== snap.requiredTool) {
       ctx.fillStyle = "#e74c3c";
       ctx.font = "bold 15px monospace";
       ctx.textAlign = "center";
