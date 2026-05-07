@@ -41,10 +41,14 @@ async function main() {
 
   let myId = "";
   let myRole = "";
+  let myClimberIndex = -1;
   let lastSnap: SnapshotPayload | null = null;
   let tick = 0;
   let frameCount = 0;
   let lastFpsTime = Date.now();
+  let showInstructions = false;
+  let instructionsStart = 0;
+  let prevPhase = "waiting";
 
   net.onWelcome((w) => {
     myId = w.yourId;
@@ -65,9 +69,15 @@ async function main() {
         const me = snap.players.find(p => p.id === myId);
         if (me) {
           myRole = me.role;
+          myClimberIndex = me.climberIndex;
         }
       }
+      if (prevPhase === "waiting" && snap.phase === "playing") {
+        showInstructions = true;
+        instructionsStart = Date.now();
+      }
     }
+    prevPhase = snap.phase;
   });
 
   net.onEvent((e) => {
@@ -109,6 +119,16 @@ async function main() {
         }
       }
       renderer.render(lastSnap, myId, boundaryHint);
+
+      if (showInstructions) {
+        const elapsed = Date.now() - instructionsStart;
+        if (elapsed > 20000) {
+          showInstructions = false;
+        } else {
+          const secsLeft = Math.ceil((20000 - elapsed) / 1000);
+          renderer.drawInstructions(myRole, myClimberIndex, secsLeft);
+        }
+      }
     }
 
     requestAnimationFrame(frame);
