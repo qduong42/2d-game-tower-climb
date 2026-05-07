@@ -187,7 +187,7 @@ func Tick(state GameState, inputs map[string]schema.InputPayload, dt float64) Ga
 			if next.WindTicksLeft <= 0 {
 				next.WindPhase = schema.WindNone
 				next.WindTicksLeft = 0
-				next.WindCooldownLeft = TicksPerSec*10 + rand.IntN(TicksPerSec*10)
+				next.WindCooldownLeft = TicksPerSec*5 + rand.IntN(TicksPerSec*5)
 			}
 		}
 	}
