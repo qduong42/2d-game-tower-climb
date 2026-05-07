@@ -299,6 +299,28 @@ func TestTick_MidCannotPassDownFromNonGroundPlatform(t *testing.T) {
 	}
 }
 
+func TestTick_SpacePassUsesSelectionBeforeRightKey(t *testing.T) {
+	// Regression for issue #16: Right+Space in same tick should pass the
+	// tool shown in the hint (pre-Right selection), not the new selection.
+	base := baseOp("base", schema.ToolWrench, schema.ToolHammer)
+	base.SelectedIdx = 0 // wrench shown in hint
+	state := playingState(map[string]*game.Player{
+		"base": base,
+		"mid":  climber("mid", 0, schema.ToolNone),
+	})
+	// Press Right+Space simultaneously — should pass wrench (old selection), not hammer
+	next := game.Tick(state, map[string]schema.InputPayload{
+		"base": {Keys: schema.InputKeys{Right: true, Space: true}},
+	}, 1.0/30.0)
+	if next.Players["mid"].Tool != schema.ToolWrench {
+		t.Errorf("simultaneous Right+Space should pass wrench (pre-Right selection), got %q", next.Players["mid"].Tool)
+	}
+	// Right should still update selection for the next action
+	if next.Players["base"].SelectedIdx != 0 {
+		t.Errorf("after passing wrench, only hammer remains so SelectedIdx should be 0, got %d", next.Players["base"].SelectedIdx)
+	}
+}
+
 func TestTick_InputsIgnoredInWaitingPhase(t *testing.T) {
 	state := game.GameState{
 		Tick: 0, Phase: schema.PhaseWaiting,

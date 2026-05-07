@@ -48,17 +48,8 @@ func Tick(state GameState, inputs map[string]schema.InputPayload, dt float64) Ga
 			}
 		}
 
-		if p.Role == schema.RoleBase && len(p.HeldTools) > 0 {
-			// Up/Down cycles the selected tool (rising edge)
-			if inp.Keys.Right && !prev.Right {
-				p.SelectedIdx = (p.SelectedIdx + 1) % len(p.HeldTools)
-			}
-			if inp.Keys.Left && !prev.Left {
-				p.SelectedIdx = (p.SelectedIdx - 1 + len(p.HeldTools)) % len(p.HeldTools)
-			}
-		}
-
 		// Pass tool along the chain — SPACE tries UP first, then DOWN.
+		// Processed before Left/Right so simultaneous presses use the selection shown in the last snapshot.
 		// Up: base→MID, MID→TOP (same platform required).
 		// Down: TOP→MID at MidMaxPlatform, MID→base at platform 0 (same platform required).
 		if inp.Keys.Space && !prev.Space {
@@ -107,6 +98,16 @@ func Tick(state GameState, inputs map[string]schema.InputPayload, dt float64) Ga
 						break
 					}
 				}
+			}
+		}
+
+		// BASE tool selection — after SPACE so simultaneous presses use the pre-pass selection
+		if p.Role == schema.RoleBase && len(p.HeldTools) > 0 {
+			if inp.Keys.Right && !prev.Right {
+				p.SelectedIdx = (p.SelectedIdx + 1) % len(p.HeldTools)
+			}
+			if inp.Keys.Left && !prev.Left {
+				p.SelectedIdx = (p.SelectedIdx - 1 + len(p.HeldTools)) % len(p.HeldTools)
 			}
 		}
 
