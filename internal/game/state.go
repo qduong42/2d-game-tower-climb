@@ -6,6 +6,7 @@ const (
 	MaxPlayers     = 3
 	NumPlatforms   = 7                // 0=ground…3=handoff…6=TOP summit
 	MidMaxPlatform = NumPlatforms / 2 // MID caps at platform 3; TOP spawns here and climbs to 6
+	TicksPerSec    = 30               // server tick rate
 )
 
 // Player holds mutable per-player state.
@@ -28,4 +29,10 @@ type GameState struct {
 	Phase        schema.Phase
 	Players      map[string]*Player
 	RequiredTool schema.ToolType
+
+	// Wind gust state machine
+	WindPhase        string // schema.WindNone | schema.WindWarning | schema.WindActive
+	WindTicksLeft    int    // ticks remaining in current wind phase
+	WindCooldownLeft int    // ticks before next warning starts (when WindPhase == "none")
+	WindKnockTicks   int    // ticks until next platform knock-down (when WindPhase == "active")
 }

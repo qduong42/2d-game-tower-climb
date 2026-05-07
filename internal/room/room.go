@@ -217,6 +217,10 @@ func (r *Room) assignRoles() {
 	tools := []schema.ToolType{schema.ToolWrench, schema.ToolHammer}
 	r.state.RequiredTool = tools[rand.IntN(len(tools))]
 
+	// First wind warning fires after a random 5–10 s delay.
+	r.state.WindPhase = schema.WindNone
+	r.state.WindCooldownLeft = tickRate*5 + rand.IntN(tickRate*5)
+
 	r.state.Phase = schema.PhasePlaying
 }
 
@@ -239,7 +243,14 @@ func buildSnapshot(s game.GameState) schema.SnapshotPayload {
 			SelectedTool: selectedTool,
 		})
 	}
-	return schema.SnapshotPayload{Tick: s.Tick, Phase: s.Phase, Players: players, RequiredTool: s.RequiredTool}
+	return schema.SnapshotPayload{
+		Tick:          s.Tick,
+		Phase:         s.Phase,
+		Players:       players,
+		RequiredTool:  s.RequiredTool,
+		WindPhase:     s.WindPhase,
+		WindTicksLeft: s.WindTicksLeft,
+	}
 }
 
 func (r *Room) broadcast(clients map[string]*Client, env schema.Envelope) {

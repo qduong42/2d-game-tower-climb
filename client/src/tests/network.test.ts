@@ -71,7 +71,7 @@ describe("NetworkClient", () => {
     client.connect("ABCD", "alice", "#ff0000", false, "ws://localhost/r/ABCD");
     fakeWS.onopen?.();
 
-    const snap: SnapshotPayload = { tick: 1, phase: "waiting", requiredTool: "", players: [] };
+    const snap: SnapshotPayload = { tick: 1, phase: "waiting", requiredTool: "", windPhase: "none", windTicksLeft: 0, players: [] };
     let received: SnapshotPayload | null = null;
     client.onSnapshot((s) => { received = s; });
     fakeWS.receive({ type: MsgType.Snapshot, payload: snap });
@@ -82,7 +82,7 @@ describe("NetworkClient", () => {
 
   it("send queues until connected", () => {
     client.connect("ABCD", "alice", "#ff0000", false, "ws://localhost/r/ABCD");
-    client.sendInput({ tick: 1, keys: { up: true, down: false, left: false, right: false, space: false } });
+    client.sendInput({ tick: 1, keys: { up: true, down: false, left: false, right: false, space: false, brace: false } });
     fakeWS.onopen?.();
     expect(fakeWS.sent.length).toBeGreaterThanOrEqual(1);
   });

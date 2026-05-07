@@ -1,15 +1,25 @@
 package game
 
-import "github.com/qduong42/2d-game-tower-climb/internal/schema"
+import (
+	"math/rand/v2"
+
+	"github.com/qduong42/2d-game-tower-climb/internal/schema"
+)
+
+const windKnockInterval = 2 * TicksPerSec // knock-down every 2 s during active gust
 
 // Tick advances game state by dt seconds given the latest inputs.
 // It is a pure function — no side effects.
 func Tick(state GameState, inputs map[string]schema.InputPayload, dt float64) GameState {
 	next := GameState{
-		Tick:         state.Tick + 1,
-		Phase:        state.Phase,
-		Players:      make(map[string]*Player, len(state.Players)),
-		RequiredTool: state.RequiredTool,
+		Tick:             state.Tick + 1,
+		Phase:            state.Phase,
+		Players:          make(map[string]*Player, len(state.Players)),
+		RequiredTool:     state.RequiredTool,
+		WindPhase:        state.WindPhase,
+		WindTicksLeft:    state.WindTicksLeft,
+		WindCooldownLeft: state.WindCooldownLeft,
+		WindKnockTicks:   state.WindKnockTicks,
 	}
 	for id, p := range state.Players {
 		cp := *p
@@ -133,6 +143,53 @@ func Tick(state GameState, inputs map[string]schema.InputPayload, dt float64) Ga
 		}
 
 		p.PrevKeys = inp.Keys
+	}
+
+	// Wind gust state machine — only runs while playing.
+	if state.Phase == schema.PhasePlaying {
+		switch state.WindPhase {
+		case "", schema.WindNone:
+			if next.WindCooldownLeft > 0 {
+				next.WindCooldownLeft--
+			} else {
+				next.WindPhase = schema.WindWarning
+				next.WindTicksLeft = TicksPerSec*5 + rand.IntN(TicksPerSec*5)
+			}
+		case schema.WindWarning:
+			if next.WindTicksLeft > 0 {
+				next.WindTicksLeft--
+			} else {
+				next.WindPhase = schema.WindActive
+				next.WindTicksLeft = TicksPerSec*5 + rand.IntN(TicksPerSec*5)
+				next.WindKnockTicks = windKnockInterval
+			}
+		case schema.WindActive:
+			next.WindTicksLeft--
+			next.WindKnockTicks--
+			if next.WindKnockTicks <= 0 {
+				for id, p := range next.Players {
+					if p.Role != schema.RoleClimber {
+						continue
+					}
+					inp := inputs[id]
+					if !inp.Keys.Brace {
+						minPlat := 0
+						if p.ClimberIndex == 1 {
+							minPlat = MidMaxPlatform
+						}
+						if p.Platform > minPlat {
+							p.Platform--
+						}
+					}
+				}
+				next.WindKnockTicks = windKnockInterval
+			}
+			if next.WindTicksLeft <= 0 {
+				next.WindPhase = schema.WindNone
+				next.WindTicksLeft = 0
+				next.WindCooldownLeft = TicksPerSec*10 + rand.IntN(TicksPerSec*10)
+			}
+		}
 	}
 
 	// Win: TOP climber (index 1) at summit carrying the required tool (never ToolNone).
