@@ -136,6 +136,9 @@ export class CanvasRenderer {
       ctx.textAlign = "center";
       ctx.fillText("Wrong tool! Pass it down again!", canvas.width / 2, canvas.height - 20);
     }
+
+    // Wind banner — active gust visible to all climbers
+    this.drawWindBanner(snap, canvas.width / 2, canvas.height - 55, false);
   }
 
   // Returns the canvas X for a player in a climber's view.
@@ -234,6 +237,9 @@ export class CanvasRenderer {
       ctx.textAlign = "center";
       ctx.fillText("Waiting for a climber to reach ground level…", W / 2, canvas.height - 20);
     }
+
+    // Wind banner — BASE sees warning + active
+    this.drawWindBanner(snap, W / 2, canvas.height - 55, true);
   }
 
   private drawClimberCard(p: PlayerState, x: number, y: number): void {
@@ -302,6 +308,25 @@ export class CanvasRenderer {
   }
 
   // ── Shared drawing helpers ────────────────────────────────────────────────
+
+  // isBase: true shows the warning phase (BASE-only info); false shows only active.
+  private drawWindBanner(snap: SnapshotPayload, cx: number, y: number, isBase: boolean): void {
+    const { ctx } = this;
+    const { windPhase, windTicksLeft } = snap;
+    const secsLeft = Math.ceil(windTicksLeft / 30);
+
+    if (windPhase === "warning" && isBase) {
+      ctx.fillStyle = "#f39c12";
+      ctx.font = "bold 13px monospace";
+      ctx.textAlign = "center";
+      ctx.fillText(`⚡ Wind gust coming in ${secsLeft}s — warn the climbers, hold B to brace!`, cx, y);
+    } else if (windPhase === "active") {
+      ctx.fillStyle = "#e74c3c";
+      ctx.font = "bold 14px monospace";
+      ctx.textAlign = "center";
+      ctx.fillText(`⚡ WIND GUST — ${secsLeft}s — Hold B to brace!`, cx, y);
+    }
+  }
 
   private drawColumn(x: number): void {
     const { ctx } = this;

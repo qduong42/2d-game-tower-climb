@@ -28,7 +28,7 @@ describe("schema types and constants", () => {
   it("InputPayload mouse field is optional", () => {
     const inp: InputPayload = {
       tick: 1,
-      keys: { up: true, down: false, left: false, right: false, space: false },
+      keys: { up: true, down: false, left: false, right: false, space: false, brace: false },
     };
     expect(inp.mouse).toBeUndefined();
     const json = JSON.stringify(inp);
@@ -40,6 +40,8 @@ describe("schema types and constants", () => {
       tick: 42,
       phase: "playing",
       requiredTool: "",
+      windPhase: "none",
+      windTicksLeft: 0,
       players: [{
         id: "p1", color: "#ff0000", name: "alice",
         role: "climber", climberIndex: 0, platform: 2, tool: "", heldTools: [], selectedTool: "",

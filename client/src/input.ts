@@ -1,15 +1,16 @@
 import type { InputPayload, MouseState } from "./schema";
 
-const KEY_MAP: Record<string, keyof { up: boolean; down: boolean; left: boolean; right: boolean; space: boolean }> = {
+const KEY_MAP: Record<string, keyof { up: boolean; down: boolean; left: boolean; right: boolean; space: boolean; brace: boolean }> = {
   w: "up", ArrowUp: "up",
   s: "down", ArrowDown: "down",
   a: "left", ArrowLeft: "left",
   d: "right", ArrowRight: "right",
   " ": "space",
+  b: "brace", B: "brace",
 };
 
 export class InputHandler {
-  private keys = { up: false, down: false, left: false, right: false, space: false };
+  private keys = { up: false, down: false, left: false, right: false, space: false, brace: false };
   private mouse: MouseState | null = null;
   private boundKeyDown: ((e: KeyboardEvent) => void) | null = null;
   private boundKeyUp: ((e: KeyboardEvent) => void) | null = null;

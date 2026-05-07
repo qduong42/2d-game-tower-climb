@@ -66,11 +66,20 @@ type PlayerState struct {
 	SelectedTool ToolType   `json:"selectedTool"`  // BASE: which tool is queued to pass next
 }
 
+// WindPhase values
+const (
+	WindNone    = "none"
+	WindWarning = "warning" // only BASE operator sees this
+	WindActive  = "active"  // everyone sees this
+)
+
 type SnapshotPayload struct {
-	Tick         uint64        `json:"tick"`
-	Phase        Phase         `json:"phase"`
-	Players      []PlayerState `json:"players"`
-	RequiredTool ToolType      `json:"requiredTool"`
+	Tick          uint64        `json:"tick"`
+	Phase         Phase         `json:"phase"`
+	Players       []PlayerState `json:"players"`
+	RequiredTool  ToolType      `json:"requiredTool"`
+	WindPhase     string        `json:"windPhase"`    // "none" | "warning" | "active"
+	WindTicksLeft int           `json:"windTicksLeft"` // ticks remaining in current wind phase
 }
 
 type EventType string
@@ -101,6 +110,7 @@ type InputKeys struct {
 	Left  bool `json:"left"`
 	Right bool `json:"right"`
 	Space bool `json:"space"`
+	Brace bool `json:"brace"` // hold B to resist wind knock-down
 }
 
 type MouseState struct {

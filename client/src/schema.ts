@@ -39,11 +39,15 @@ export interface PlayerState {
   selectedTool: ToolType;  // BASE: which tool is queued to pass next
 }
 
+export type WindPhase = "none" | "warning" | "active" | "";
+
 export interface SnapshotPayload {
   tick: number;
   phase: Phase;
   players: PlayerState[];
   requiredTool: ToolType;
+  windPhase: WindPhase;
+  windTicksLeft: number;
 }
 
 export type EventType = "join" | "leave" | "error";
@@ -68,6 +72,7 @@ export interface InputKeys {
   left: boolean;
   right: boolean;
   space: boolean;
+  brace: boolean; // hold B to resist wind knock-down
 }
 
 export interface MouseState {
