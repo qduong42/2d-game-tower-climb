@@ -55,12 +55,21 @@ export class CanvasRenderer {
     ctx.textAlign = "center";
     ctx.fillText(me.climberIndex === 0 ? "CLIMBER — MID" : "CLIMBER — TOP", canvas.width / 2, 30);
 
+    // Required-tool banner — only TOP sees this (asymmetric information)
+    if (me.climberIndex === 1 && snap.requiredTool) {
+      const toolLabel = snap.requiredTool.toUpperCase();
+      ctx.fillStyle = "#ffd700";
+      ctx.font = "bold 15px monospace";
+      ctx.textAlign = "center";
+      ctx.fillText(`Ask BASE for a ${toolLabel}!`, canvas.width / 2, 50);
+    }
+
     // Tool display — placeholder for sprite
     if (me.tool) {
       ctx.fillStyle = "#ffd700";
       ctx.font = "bold 13px monospace";
       ctx.textAlign = "center";
-      ctx.fillText(`⚙ ${me.tool.toUpperCase()}`, canvas.width / 2, 50);
+      ctx.fillText(`⚙ ${me.tool.toUpperCase()}`, canvas.width / 2, me.climberIndex === 1 ? 68 : 50);
     }
 
     // Floor label for own position
@@ -118,6 +127,14 @@ export class CanvasRenderer {
         ctx.textAlign = "center";
         ctx.fillText("Waiting for MID climber to reach handoff floor…", canvas.width / 2, canvas.height - 20);
       }
+    }
+
+    // Wrong tool warning — TOP at summit with the wrong tool
+    if (me.climberIndex === 1 && me.platform === NUM_PLATFORMS - 1 && me.tool && me.tool !== snap.requiredTool) {
+      ctx.fillStyle = "#e74c3c";
+      ctx.font = "bold 15px monospace";
+      ctx.textAlign = "center";
+      ctx.fillText("Wrong tool! Pass it down again!", canvas.width / 2, canvas.height - 20);
     }
   }
 
