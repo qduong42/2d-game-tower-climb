@@ -71,6 +71,9 @@ func Tick(state GameState, inputs map[string]schema.InputPayload, dt float64) Ga
 					continue
 				}
 				if p.Role == schema.RoleBase && len(p.HeldTools) > 0 {
+					if other.Tool != schema.ToolNone {
+						continue // target already has a tool, skip
+					}
 					selected := p.HeldTools[p.SelectedIdx]
 					p.HeldTools = append(p.HeldTools[:p.SelectedIdx], p.HeldTools[p.SelectedIdx+1:]...)
 					if p.SelectedIdx >= len(p.HeldTools) && len(p.HeldTools) > 0 {
@@ -81,6 +84,9 @@ func Tick(state GameState, inputs map[string]schema.InputPayload, dt float64) Ga
 					break
 				}
 				if p.Role == schema.RoleClimber && p.Tool != schema.ToolNone {
+					if other.Tool != schema.ToolNone {
+						continue // target already has a tool, skip
+					}
 					other.Tool = p.Tool
 					p.Tool = schema.ToolNone
 					passed = true
@@ -101,6 +107,9 @@ func Tick(state GameState, inputs map[string]schema.InputPayload, dt float64) Ga
 						if other.Role == schema.RoleBase {
 							other.HeldTools = append(other.HeldTools, p.Tool)
 						} else {
+							if other.Tool != schema.ToolNone {
+								continue // target already has a tool, skip
+							}
 							other.Tool = p.Tool
 						}
 						p.Tool = schema.ToolNone
