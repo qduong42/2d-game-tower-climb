@@ -310,11 +310,9 @@ export class CanvasRenderer {
       ctx.stroke();
     }
 
-    // TOP label
-    ctx.fillStyle = "#ffd700";
-    ctx.font = "bold 11px monospace";
-    ctx.textAlign = "center";
-    ctx.fillText("TOP", x, PLATFORM_Y[NUM_PLATFORMS - 1]! - 8);
+    // "TOP" label removed: the floor-label strip already shows "Top ★" beside
+    // the top platform, and the centred label at y=52 conflicted with the tool
+    // text drawn at y=50 in renderClimberView (issue #17).
   }
 
   private drawPlayerCircle(p: PlayerState, x: number, y: number, isMe: boolean): void {
