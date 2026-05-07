@@ -43,6 +43,7 @@ export interface SnapshotPayload {
   tick: number;
   phase: Phase;
   players: PlayerState[];
+  requiredTool: ToolType;
 }
 
 export type EventType = "join" | "leave" | "error";

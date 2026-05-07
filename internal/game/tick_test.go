@@ -185,6 +185,7 @@ func TestTick_WinWhenTopClimberReachesTopWithTool(t *testing.T) {
 	state := playingState(map[string]*game.Player{
 		"c1": topClimber("c1", game.NumPlatforms-2, schema.ToolWrench),
 	})
+	state.RequiredTool = schema.ToolWrench
 	next := game.Tick(state, map[string]schema.InputPayload{"c1": {Keys: schema.InputKeys{Up: true}}}, 1.0/30.0)
 	if next.Phase != schema.PhaseWon {
 		t.Errorf("expected phase won, got %q", next.Phase)
@@ -192,11 +193,12 @@ func TestTick_WinWhenTopClimberReachesTopWithTool(t *testing.T) {
 }
 
 func TestTick_VictoryCondition(t *testing.T) {
-	// Victory: TOP climber (index 1) at the top platform with any tool → PhaseWon.
+	// Victory: TOP climber (index 1) at the top platform with the required tool → PhaseWon.
 	// Win check runs every tick regardless of input.
 	state := playingState(map[string]*game.Player{
 		"top": topClimber("top", game.NumPlatforms-1, schema.ToolWrench),
 	})
+	state.RequiredTool = schema.ToolWrench
 	next := game.Tick(state, nil, 1.0/30.0)
 	if next.Phase != schema.PhaseWon {
 		t.Errorf("expected PhaseWon, got %q", next.Phase)
@@ -330,6 +332,30 @@ func TestTick_MidCannotPassDownFromNonGroundPlatform(t *testing.T) {
 	next := game.Tick(state, map[string]schema.InputPayload{"mid": {Keys: schema.InputKeys{Space: true}}}, 1.0/30.0)
 	if next.Players["mid"].Tool != schema.ToolWrench {
 		t.Error("MID should keep tool — can only pass down at platform 0")
+	}
+}
+
+func TestTick_WrongToolDoesNotWin(t *testing.T) {
+	// TOP at summit with the wrong tool → phase stays Playing.
+	state := playingState(map[string]*game.Player{
+		"top": topClimber("top", game.NumPlatforms-1, schema.ToolHammer),
+	})
+	state.RequiredTool = schema.ToolWrench // required is wrench, TOP carries hammer
+	next := game.Tick(state, nil, 1.0/30.0)
+	if next.Phase == schema.PhaseWon {
+		t.Error("TOP at summit with wrong tool should not win")
+	}
+}
+
+func TestTick_CorrectToolWins(t *testing.T) {
+	// TOP at summit with the required tool → phase becomes Won.
+	state := playingState(map[string]*game.Player{
+		"top": topClimber("top", game.NumPlatforms-1, schema.ToolHammer),
+	})
+	state.RequiredTool = schema.ToolHammer // required is hammer, TOP carries hammer
+	next := game.Tick(state, nil, 1.0/30.0)
+	if next.Phase != schema.PhaseWon {
+		t.Errorf("expected PhaseWon, got %q", next.Phase)
 	}
 }
 

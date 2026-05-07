@@ -24,7 +24,8 @@ type Player struct {
 
 // GameState is the full authoritative state for one room at one tick.
 type GameState struct {
-	Tick    uint64
-	Phase   schema.Phase
-	Players map[string]*Player
+	Tick         uint64
+	Phase        schema.Phase
+	Players      map[string]*Player
+	RequiredTool schema.ToolType
 }

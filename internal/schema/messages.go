@@ -67,9 +67,10 @@ type PlayerState struct {
 }
 
 type SnapshotPayload struct {
-	Tick    uint64        `json:"tick"`
-	Phase   Phase         `json:"phase"`
-	Players []PlayerState `json:"players"`
+	Tick         uint64        `json:"tick"`
+	Phase        Phase         `json:"phase"`
+	Players      []PlayerState `json:"players"`
+	RequiredTool ToolType      `json:"requiredTool"`
 }
 
 type EventType string

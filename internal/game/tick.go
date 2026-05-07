@@ -6,9 +6,10 @@ import "github.com/qduong42/2d-game-tower-climb/internal/schema"
 // It is a pure function — no side effects.
 func Tick(state GameState, inputs map[string]schema.InputPayload, dt float64) GameState {
 	next := GameState{
-		Tick:    state.Tick + 1,
-		Phase:   state.Phase,
-		Players: make(map[string]*Player, len(state.Players)),
+		Tick:         state.Tick + 1,
+		Phase:        state.Phase,
+		Players:      make(map[string]*Player, len(state.Players)),
+		RequiredTool: state.RequiredTool,
 	}
 	for id, p := range state.Players {
 		cp := *p
@@ -122,9 +123,10 @@ func Tick(state GameState, inputs map[string]schema.InputPayload, dt float64) Ga
 		p.PrevKeys = inp.Keys
 	}
 
-	// Win: TOP climber (index 1) at summit carrying any tool
+	// Win: TOP climber (index 1) at summit carrying the required tool (never ToolNone).
 	for _, p := range next.Players {
-		if p.Role == schema.RoleClimber && p.ClimberIndex == 1 && p.Platform == NumPlatforms-1 && p.Tool != schema.ToolNone {
+		if p.Role == schema.RoleClimber && p.ClimberIndex == 1 && p.Platform == NumPlatforms-1 &&
+			state.RequiredTool != schema.ToolNone && p.Tool == state.RequiredTool {
 			next.Phase = schema.PhaseWon
 			break
 		}

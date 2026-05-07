@@ -198,6 +198,10 @@ func (r *Room) assignRoles() {
 	r.state.Players[ids[2]].ClimberIndex = 1
 	r.state.Players[ids[2]].Platform = game.NumPlatforms - 1
 
+	// Randomly pick which tool is required to win.
+	tools := []schema.ToolType{schema.ToolWrench, schema.ToolHammer}
+	r.state.RequiredTool = tools[rand.IntN(len(tools))]
+
 	r.state.Phase = schema.PhasePlaying
 }
 
@@ -220,7 +224,7 @@ func buildSnapshot(s game.GameState) schema.SnapshotPayload {
 			SelectedTool: selectedTool,
 		})
 	}
-	return schema.SnapshotPayload{Tick: s.Tick, Phase: s.Phase, Players: players}
+	return schema.SnapshotPayload{Tick: s.Tick, Phase: s.Phase, Players: players, RequiredTool: s.RequiredTool}
 }
 
 func (r *Room) broadcast(clients map[string]*Client, env schema.Envelope) {
