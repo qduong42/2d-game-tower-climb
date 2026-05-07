@@ -287,6 +287,40 @@ func TestTick_MidPassesToolDownToBase(t *testing.T) {
 	}
 }
 
+// TestTick_BaseCannotPassToMidWhoAlreadyHasTool verifies issue #19:
+// BASE tries to pass a second tool to MID who already holds one.
+// The pass should be silently rejected; MID keeps original tool, BASE keeps its tools.
+func TestTick_BaseCannotPassToMidWhoAlreadyHasTool(t *testing.T) {
+	base := baseOp("base", schema.ToolWrench, schema.ToolHammer)
+	state := playingState(map[string]*game.Player{
+		"base": base,
+		"c1":   climber("c1", 0, schema.ToolHammer), // MID already holds a tool
+	})
+	next := game.Tick(state, map[string]schema.InputPayload{"base": {Keys: schema.InputKeys{Space: true}}}, 1.0/30.0)
+	if next.Players["c1"].Tool != schema.ToolHammer {
+		t.Errorf("MID should still hold hammer after rejected pass, got %q", next.Players["c1"].Tool)
+	}
+	if len(next.Players["base"].HeldTools) != 2 {
+		t.Errorf("BASE should still hold both tools after rejected pass, got %v", next.Players["base"].HeldTools)
+	}
+}
+
+// TestTick_MidCannotPassToTopWhoAlreadyHasTool verifies the same guard for the MID→TOP path.
+// MID tries to pass to TOP who already holds a tool; the pass should be silently rejected.
+func TestTick_MidCannotPassToTopWhoAlreadyHasTool(t *testing.T) {
+	state := playingState(map[string]*game.Player{
+		"mid": climber("mid", game.MidMaxPlatform, schema.ToolWrench),
+		"top": topClimber("top", game.MidMaxPlatform, schema.ToolHammer), // TOP already holds a tool
+	})
+	next := game.Tick(state, map[string]schema.InputPayload{"mid": {Keys: schema.InputKeys{Space: true}}}, 1.0/30.0)
+	if next.Players["mid"].Tool != schema.ToolWrench {
+		t.Errorf("MID should still hold wrench after rejected pass, got %q", next.Players["mid"].Tool)
+	}
+	if next.Players["top"].Tool != schema.ToolHammer {
+		t.Errorf("TOP should still hold hammer after rejected pass, got %q", next.Players["top"].Tool)
+	}
+}
+
 func TestTick_MidCannotPassDownFromNonGroundPlatform(t *testing.T) {
 	// MID at platform 1 cannot pass DOWN
 	state := playingState(map[string]*game.Player{
