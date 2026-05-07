@@ -33,6 +33,9 @@ func main() {
 	}
 	fileServer := http.FileServer(http.FS(static))
 
+	// GET /rooms — room browser: public, non-full rooms.
+	mux.HandleFunc("/rooms", gw.ServeRooms)
+
 	// /r/* routes: WebSocket upgrades go to the gateway; plain page loads
 	// (e.g. browser refresh on /r/ABCD) serve index.html so the SPA boots.
 	mux.HandleFunc("/r/", func(w http.ResponseWriter, r *http.Request) {

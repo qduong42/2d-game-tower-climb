@@ -19,11 +19,12 @@ export class NetworkClient {
   private welcomeTimer: ReturnType<typeof setTimeout> | null = null;
   private closeReported = false;
 
-  connect(roomCode: string, name: string, color: string, wsUrl?: string): void {
+  connect(roomCode: string, name: string, color: string, isPrivate?: boolean, wsUrl?: string): void {
     this.closeReported = false;
     const url = wsUrl ?? (() => {
       const protocol = location.protocol === "https:" ? "wss" : "ws";
-      return `${protocol}://${location.host}/r/${roomCode}`;
+      const base = `${protocol}://${location.host}/r/${roomCode}`;
+      return isPrivate ? `${base}?private=true` : base;
     })();
     this.ws = new WebSocket(url);
 

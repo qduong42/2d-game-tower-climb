@@ -21,6 +21,19 @@ func New(mgr *room.Manager) *Gateway {
 	return &Gateway{mgr: mgr}
 }
 
+// ServeRooms handles GET /rooms — returns public, non-full rooms.
+func (g *Gateway) ServeRooms(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	rooms := g.mgr.ListPublicOpen()
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(rooms); err != nil {
+		slog.Warn("rooms_encode_failed", "err", err)
+	}
+}
+
 func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	code, ok := ExtractRoomCode(r.URL.Path)
 	if !ok {
@@ -37,7 +50,8 @@ func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	ctx := r.Context()
-	client, rm := g.handshake(ctx, conn, code)
+	isPrivate := r.URL.Query().Get("private") == "true"
+	client, rm := g.handshake(ctx, conn, code, isPrivate)
 	if client == nil {
 		conn.Close(websocket.StatusPolicyViolation, "bad join message")
 		return
@@ -55,7 +69,7 @@ func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	g.readPump(ctx, client, rm)
 }
 
-func (g *Gateway) handshake(ctx context.Context, conn *websocket.Conn, code string) (*room.Client, *room.Room) {
+func (g *Gateway) handshake(ctx context.Context, conn *websocket.Conn, code string, isPrivate bool) (*room.Client, *room.Room) {
 	_, data, err := conn.Read(ctx)
 	if err != nil {
 		return nil, nil
@@ -69,7 +83,7 @@ func (g *Gateway) handshake(ctx context.Context, conn *websocket.Conn, code stri
 		return nil, nil
 	}
 
-	rm := g.mgr.GetOrCreate(code)
+	rm := g.mgr.GetOrCreateWithPrivacy(code, isPrivate)
 	client := room.NewConnectedClient(join.Name, conn)
 	if ok := rm.Join(client, join.Color); !ok {
 		conn.Close(websocket.StatusPolicyViolation, "room is full")

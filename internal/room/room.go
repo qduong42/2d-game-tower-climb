@@ -53,15 +53,16 @@ type joinReq struct {
 
 // Room manages one game session.
 type Room struct {
-	code   string
-	mu     sync.Mutex
-	state  game.GameState
-	inputs map[string]schema.InputPayload
-	join   chan joinReq
-	leave  chan string
-	input  chan inputMsg
-	done   chan struct{}
-	once   sync.Once
+	code      string
+	isPrivate bool
+	mu        sync.Mutex
+	state     game.GameState
+	inputs    map[string]schema.InputPayload
+	join      chan joinReq
+	leave     chan string
+	input     chan inputMsg
+	done      chan struct{}
+	once      sync.Once
 }
 
 type inputMsg struct {
@@ -69,17 +70,31 @@ type inputMsg struct {
 	payload  schema.InputPayload
 }
 
-func newRoom(code string) *Room {
+func newRoom(code string, isPrivate bool) *Room {
 	return &Room{
-		code:   code,
-		state:  game.GameState{Phase: schema.PhaseWaiting, Players: make(map[string]*game.Player)},
-		inputs: make(map[string]schema.InputPayload),
-		join:   make(chan joinReq, 8),
-		leave:  make(chan string, 8),
-		input:  make(chan inputMsg, 64),
-		done:   make(chan struct{}),
+		code:      code,
+		isPrivate: isPrivate,
+		state:     game.GameState{Phase: schema.PhaseWaiting, Players: make(map[string]*game.Player)},
+		inputs:    make(map[string]schema.InputPayload),
+		join:      make(chan joinReq, 8),
+		leave:     make(chan string, 8),
+		input:     make(chan inputMsg, 64),
+		done:      make(chan struct{}),
 	}
 }
+
+// IsPrivate reports whether this room is private (hidden from the room browser).
+func (r *Room) IsPrivate() bool { return r.isPrivate }
+
+// PlayerCount returns the current number of players in the room.
+func (r *Room) PlayerCount() int {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	return len(r.state.Players)
+}
+
+// Code returns the room's unique code.
+func (r *Room) Code() string { return r.code }
 
 func (r *Room) stop() {
 	r.once.Do(func() { close(r.done) })
@@ -281,13 +296,22 @@ func NewTestClient(id, name string) *Client {
 	return &Client{id: id, name: name, send: make(chan schema.Envelope, 16)}
 }
 
-// NewTestRoom creates a Room without starting it (call RunForTest to start).
+// NewTestRoom creates a public Room without starting it (call RunForTest to start).
 func NewTestRoom(code string) *Room {
-	return newRoom(code)
+	return newRoom(code, false)
+}
+
+// NewTestPrivateRoom creates a private Room without starting it.
+func NewTestPrivateRoom(code string) *Room {
+	return newRoom(code, true)
 }
 
 // RunForTest runs the room loop — call as a goroutine in tests.
 func (r *Room) RunForTest() { r.run() }
+
+// Stop is an exported alias for stop, so tests and integration code can
+// cleanly shut down a room.
+func (r *Room) Stop() { r.stop() }
 
 // SendChan returns the client's send channel for test assertions.
 func (c *Client) SendChan() <-chan schema.Envelope { return c.send }
