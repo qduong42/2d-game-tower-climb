@@ -45,7 +45,7 @@ describe("NetworkClient", () => {
   });
 
   it("sends Join on connect", () => {
-    client.connect("ABCD", "alice", "#ff0000", "ws://localhost/r/ABCD");
+    client.connect("ABCD", "alice", "#ff0000", false, "ws://localhost/r/ABCD");
     fakeWS.onopen?.();
     expect(fakeWS.sent).toHaveLength(1);
     const msg = JSON.parse(fakeWS.sent[0]);
@@ -55,7 +55,7 @@ describe("NetworkClient", () => {
   });
 
   it("calls onWelcome when welcome arrives", () => {
-    client.connect("ABCD", "alice", "#ff0000", "ws://localhost/r/ABCD");
+    client.connect("ABCD", "alice", "#ff0000", false, "ws://localhost/r/ABCD");
     fakeWS.onopen?.();
 
     const welcome: WelcomePayload = { yourId: "p1", roomCode: "ABCD", tickRate: 20, color: "#e74c3c" };
@@ -68,7 +68,7 @@ describe("NetworkClient", () => {
   });
 
   it("calls onSnapshot when snapshot arrives", () => {
-    client.connect("ABCD", "alice", "#ff0000", "ws://localhost/r/ABCD");
+    client.connect("ABCD", "alice", "#ff0000", false, "ws://localhost/r/ABCD");
     fakeWS.onopen?.();
 
     const snap: SnapshotPayload = { tick: 1, phase: "waiting", players: [] };
@@ -81,7 +81,7 @@ describe("NetworkClient", () => {
   });
 
   it("send queues until connected", () => {
-    client.connect("ABCD", "alice", "#ff0000", "ws://localhost/r/ABCD");
+    client.connect("ABCD", "alice", "#ff0000", false, "ws://localhost/r/ABCD");
     client.sendInput({ tick: 1, keys: { up: true, down: false, left: false, right: false, space: false } });
     fakeWS.onopen?.();
     expect(fakeWS.sent.length).toBeGreaterThanOrEqual(1);
@@ -93,7 +93,7 @@ describe("NetworkClient", () => {
     let closeReason: string | null = null;
     client.onClose((r) => { closeReason = r; });
 
-    client.connect("ABCD", "alice", "#ff0000", "ws://localhost/r/ABCD");
+    client.connect("ABCD", "alice", "#ff0000", false, "ws://localhost/r/ABCD");
     fakeWS.onopen?.(); // connection succeeded, Join sent, Welcome never arrives
 
     vi.advanceTimersByTime(9_999);
@@ -110,7 +110,7 @@ describe("NetworkClient", () => {
     client.onClose((r) => { closeReason = r; });
     client.onWelcome(() => {});
 
-    client.connect("ABCD", "alice", "#ff0000", "ws://localhost/r/ABCD");
+    client.connect("ABCD", "alice", "#ff0000", false, "ws://localhost/r/ABCD");
     fakeWS.onopen?.();
     fakeWS.receive({ type: MsgType.Welcome, payload: { yourId: "p1", roomCode: "ABCD", tickRate: 20, color: "#e74c3c" } });
 
@@ -123,7 +123,7 @@ describe("NetworkClient", () => {
     let closeReason: string | null = null;
     client.onClose((r) => { closeReason = r; });
 
-    client.connect("ABCD", "alice", "#ff0000", "ws://localhost/r/ABCD");
+    client.connect("ABCD", "alice", "#ff0000", false, "ws://localhost/r/ABCD");
     fakeWS.onopen?.();
     fakeWS.simulateError();
 
@@ -134,7 +134,7 @@ describe("NetworkClient", () => {
     let closeReason: string | null = null;
     client.onClose((r) => { closeReason = r; });
 
-    client.connect("ABCD", "alice", "#ff0000", "ws://localhost/r/ABCD");
+    client.connect("ABCD", "alice", "#ff0000", false, "ws://localhost/r/ABCD");
     fakeWS.onopen?.();
     fakeWS.simulateRoomFull();
 

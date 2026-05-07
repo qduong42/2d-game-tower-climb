@@ -15,7 +15,7 @@ async function main() {
   const app = document.getElementById("app")!;
   initDebugOverlay();
 
-  const { roomCode, name, color: preferredColor } = await showLobby(app);
+  const { roomCode, name, color: preferredColor, isPrivate } = await showLobby(app);
 
   const canvas = document.createElement("canvas");
   canvas.width = WORLD_W;
@@ -79,7 +79,7 @@ async function main() {
     statusEl.style.color = "#e74c3c";
   });
 
-  net.connect(roomCode, name, preferredColor);
+  net.connect(roomCode, name, preferredColor, isPrivate);
   input.start(window);
 
   setInterval(() => {

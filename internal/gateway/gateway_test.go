@@ -1,6 +1,7 @@
 package gateway_test
 
 import (
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -56,3 +57,72 @@ func TestGateway_ExtractCode(t *testing.T) {
 }
 
 var _ = strings.TrimPrefix // avoid unused import
+
+// TestServeRooms_PublicRoomAppears verifies that a public, non-full room is
+// returned by GET /rooms.
+func TestServeRooms_PublicRoomAppears(t *testing.T) {
+	mgr := room.NewManager()
+	mgr.GetOrCreate("PUB1")
+	gw := gateway.New(mgr)
+
+	req := httptest.NewRequest(http.MethodGet, "/rooms", nil)
+	w := httptest.NewRecorder()
+	gw.ServeRooms(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", w.Code)
+	}
+	var rooms []room.RoomInfo
+	if err := json.NewDecoder(w.Body).Decode(&rooms); err != nil {
+		t.Fatalf("failed to decode response: %v", err)
+	}
+	found := false
+	for _, r := range rooms {
+		if r.Code == "PUB1" {
+			found = true
+		}
+	}
+	if !found {
+		t.Error("expected PUB1 in /rooms response")
+	}
+}
+
+// TestServeRooms_PrivateRoomHidden verifies that a private room does not appear
+// in the GET /rooms response.
+func TestServeRooms_PrivateRoomHidden(t *testing.T) {
+	mgr := room.NewManager()
+	mgr.GetOrCreateWithPrivacy("PRIV", true)
+	gw := gateway.New(mgr)
+
+	req := httptest.NewRequest(http.MethodGet, "/rooms", nil)
+	w := httptest.NewRecorder()
+	gw.ServeRooms(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", w.Code)
+	}
+	var rooms []room.RoomInfo
+	if err := json.NewDecoder(w.Body).Decode(&rooms); err != nil {
+		t.Fatalf("failed to decode response: %v", err)
+	}
+	for _, r := range rooms {
+		if r.Code == "PRIV" {
+			t.Error("private room should not appear in /rooms response")
+		}
+	}
+}
+
+// TestServeRooms_MethodNotAllowed verifies that non-GET requests to /rooms
+// are rejected.
+func TestServeRooms_MethodNotAllowed(t *testing.T) {
+	mgr := room.NewManager()
+	gw := gateway.New(mgr)
+
+	req := httptest.NewRequest(http.MethodPost, "/rooms", nil)
+	w := httptest.NewRecorder()
+	gw.ServeRooms(w, req)
+
+	if w.Code != http.StatusMethodNotAllowed {
+		t.Errorf("expected 405, got %d", w.Code)
+	}
+}
