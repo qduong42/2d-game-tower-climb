@@ -351,3 +351,65 @@ func TestTick_IncrementsTick(t *testing.T) {
 		t.Errorf("expected tick 6, got %d", next.Tick)
 	}
 }
+
+// TestTick_NoToolDuplicateAfterRoundTrip verifies issue #24:
+// BASE starts with [wrench, hammer] (SelectedIdx=1). BASE passes hammer to MID.
+// MID returns hammer to BASE. BASE should end with [wrench, hammer] — not [hammer, hammer, wrench].
+//
+// The root cause: when MID returns a tool to BASE and BASE still holds a copy
+// (possible when BASE's UP-pass was blocked by the guard in the same tick that
+// MID presses SPACE), the DOWN-pass appends unconditionally, creating a duplicate.
+// The fix guards the DOWN-pass append with a duplicate check.
+func TestTick_NoToolDuplicateAfterRoundTrip(t *testing.T) {
+	// Part 1 — sequential round-trip (2 ticks): basic correctness.
+	base := baseOp("base", schema.ToolWrench, schema.ToolHammer)
+	base.SelectedIdx = 1 // hammer selected
+	state := playingState(map[string]*game.Player{
+		"base": base,
+		"mid":  climber("mid", 0, schema.ToolNone),
+	})
+
+	// Tick 1: BASE presses SPACE → passes hammer to MID.
+	state1 := game.Tick(state, map[string]schema.InputPayload{
+		"base": {Keys: schema.InputKeys{Space: true}},
+	}, 1.0/30.0)
+
+	if state1.Players["mid"].Tool != schema.ToolHammer {
+		t.Fatalf("tick1: MID should hold hammer, got %q", state1.Players["mid"].Tool)
+	}
+	if len(state1.Players["base"].HeldTools) != 1 || state1.Players["base"].HeldTools[0] != schema.ToolWrench {
+		t.Fatalf("tick1: BASE should hold only [wrench], got %v", state1.Players["base"].HeldTools)
+	}
+
+	// Tick 2: MID presses SPACE at platform 0 → returns hammer to BASE.
+	state2 := game.Tick(state1, map[string]schema.InputPayload{
+		"mid": {Keys: schema.InputKeys{Space: true}},
+	}, 1.0/30.0)
+
+	if state2.Players["mid"].Tool != schema.ToolNone {
+		t.Errorf("tick2: MID should have no tool after returning hammer, got %q", state2.Players["mid"].Tool)
+	}
+	if len(state2.Players["base"].HeldTools) != 2 {
+		t.Errorf("tick2: BASE should have exactly 2 tools, got %d: %v",
+			len(state2.Players["base"].HeldTools), state2.Players["base"].HeldTools)
+	}
+
+	// Part 2 — duplicate-guard: MID holds hammer while BASE also holds [wrench, hammer].
+	// Without the fix, DOWN-pass appends unconditionally → BASE = [wrench, hammer, hammer].
+	base2 := baseOp("base", schema.ToolWrench, schema.ToolHammer)
+	state3 := playingState(map[string]*game.Player{
+		"base": base2,
+		"mid":  climber("mid", 0, schema.ToolHammer), // MID already holds hammer
+	})
+	state4 := game.Tick(state3, map[string]schema.InputPayload{
+		"mid": {Keys: schema.InputKeys{Space: true}},
+	}, 1.0/30.0)
+
+	if state4.Players["mid"].Tool != schema.ToolNone {
+		t.Errorf("part2: MID should have no tool after returning, got %q", state4.Players["mid"].Tool)
+	}
+	if len(state4.Players["base"].HeldTools) != 2 {
+		t.Errorf("part2: BASE should have exactly 2 tools after MID returns duplicate, got %d: %v",
+			len(state4.Players["base"].HeldTools), state4.Players["base"].HeldTools)
+	}
+}
