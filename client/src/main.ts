@@ -41,10 +41,14 @@ async function main() {
 
   let myId = "";
   let myRole = "";
+  let myClimberIndex = -1;
   let lastSnap: SnapshotPayload | null = null;
   let tick = 0;
   let frameCount = 0;
   let lastFpsTime = Date.now();
+  let showInstructions = false;
+  let instructionsStart = 0;
+  let prevPhase = "waiting";
 
   net.onWelcome((w) => {
     myId = w.yourId;
@@ -65,9 +69,15 @@ async function main() {
         const me = snap.players.find(p => p.id === myId);
         if (me) {
           myRole = me.role;
+          myClimberIndex = me.climberIndex;
         }
       }
+      if (prevPhase === "waiting" && snap.phase === "playing") {
+        showInstructions = true;
+        instructionsStart = Date.now();
+      }
     }
+    prevPhase = snap.phase;
   });
 
   net.onEvent((e) => {
@@ -81,6 +91,7 @@ async function main() {
 
   net.connect(roomCode, name, preferredColor, isPrivate);
   input.start(window);
+  window.addEventListener("keydown", () => { if (showInstructions) showInstructions = false; }, { capture: true });
 
   setInterval(() => {
     const inp = input.getInput(tick++);
@@ -109,6 +120,14 @@ async function main() {
         }
       }
       renderer.render(lastSnap, myId, boundaryHint);
+
+      if (showInstructions) {
+        if (Date.now() - instructionsStart > 8000) {
+          showInstructions = false;
+        } else {
+          renderer.drawInstructions(myRole, myClimberIndex);
+        }
+      }
     }
 
     requestAnimationFrame(frame);

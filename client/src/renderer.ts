@@ -388,6 +388,70 @@ export class CanvasRenderer {
     ctx.fillRect(0, 0, canvas.width, canvas.height);
   }
 
+  drawInstructions(role: string, climberIndex: number): void {
+    const { ctx, canvas } = this;
+
+    ctx.fillStyle = "rgba(0,0,0,0.88)";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    const cx = canvas.width / 2;
+
+    ctx.textAlign = "center";
+    ctx.fillStyle = "#ffd700";
+    ctx.font = "bold 20px monospace";
+    const roleLabel = role === "base" ? "BASE OPERATOR" : climberIndex === 0 ? "MID CLIMBER" : "TOP CLIMBER";
+    ctx.fillText(roleLabel, cx, 72);
+
+    ctx.fillStyle = "#e0e0e0";
+    ctx.font = "bold 15px monospace";
+    ctx.fillText("Your job:", cx, 108);
+
+    const lines = this.instructionLines(role, climberIndex);
+    ctx.font = "13px monospace";
+    lines.forEach((line, i) => {
+      ctx.fillStyle = line.startsWith("  ") ? "#888" : "#ccc";
+      ctx.fillText(line, cx, 140 + i * 26);
+    });
+
+    ctx.fillStyle = "#555";
+    ctx.font = "12px monospace";
+    ctx.fillText("Press any key to start", cx, canvas.height - 24);
+  }
+
+  private instructionLines(role: string, climberIndex: number): string[] {
+    if (role === "base") {
+      return [
+        "⚡ Watch for wind gust warnings",
+        "  → tell your team so they can brace (Hold B)",
+        "",
+        "🔧 Pass the RIGHT tool to the MID climber",
+        "  → MID will tell you which one to send",
+        "",
+        "  Use ← → to select tool, SPACE to pass",
+      ];
+    }
+    if (climberIndex === 0) {
+      return [
+        "⬇  Go to ground floor to receive tool from BASE",
+        "  → press SPACE when standing next to BASE",
+        "",
+        "⬆  Carry tool up to Handoff floor (Floor 3)",
+        "  → press SPACE to pass it to TOP",
+        "",
+        "⚡ Hold B during wind gusts to stay put!",
+      ];
+    }
+    return [
+      "👁  Only YOU know which tool is needed",
+      "  → tell BASE & MID climber which tool to send",
+      "",
+      "⬇  Wait at Handoff floor to receive from MID",
+      "⬆  Carry the tool to the TOP to win!",
+      "",
+      "⚡ Hold B during wind gusts to stay put!",
+    ];
+  }
+
   private drawWinOverlay(): void {
     const { ctx, canvas } = this;
     ctx.fillStyle = "rgba(0,0,0,0.65)";
