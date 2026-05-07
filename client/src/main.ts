@@ -122,10 +122,10 @@ async function main() {
 
       if (showInstructions) {
         const elapsed = Date.now() - instructionsStart;
-        if (elapsed > 30000) {
+        if (elapsed > 20000) {
           showInstructions = false;
         } else {
-          const secsLeft = Math.ceil((30000 - elapsed) / 1000);
+          const secsLeft = Math.ceil((20000 - elapsed) / 1000);
           renderer.drawInstructions(myRole, myClimberIndex, secsLeft);
         }
       }

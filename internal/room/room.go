@@ -217,9 +217,9 @@ func (r *Room) assignRoles() {
 	tools := []schema.ToolType{schema.ToolWrench, schema.ToolHammer}
 	r.state.RequiredTool = tools[rand.IntN(len(tools))]
 
-	// First wind warning fires after a random 5–10 s delay.
+	// First wind warning fires after instructions screen clears (~35 s).
 	r.state.WindPhase = schema.WindNone
-	r.state.WindCooldownLeft = tickRate*5 + rand.IntN(tickRate*5)
+	r.state.WindCooldownLeft = tickRate * 35
 
 	r.state.Phase = schema.PhasePlaying
 }
