@@ -6,7 +6,14 @@ export default defineConfig({
   test: { include: ["src/tests/**/*.test.ts"] },
   server: {
     proxy: {
-      "/r": { target: "http://localhost:8080", ws: true },
+      "/r": {
+        target: "http://localhost:8080",
+        ws: true,
+        bypass(req) {
+          // Serve the SPA for plain page loads; only proxy WebSocket upgrades.
+          if (req.headers.upgrade !== "websocket") return req.url;
+        },
+      },
     },
   },
 });
