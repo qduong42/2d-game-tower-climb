@@ -204,7 +204,7 @@ func buildSnapshot(s game.GameState) schema.SnapshotPayload {
 	players := make([]schema.PlayerState, 0, len(s.Players))
 	for _, p := range s.Players {
 		var selectedTool schema.ToolType
-		if p.Role == schema.RoleBase && len(p.HeldTools) > 0 {
+		if p.Role == schema.RoleBase && len(p.HeldTools) > 0 && p.SelectedIdx < len(p.HeldTools) {
 			selectedTool = p.HeldTools[p.SelectedIdx]
 		}
 		players = append(players, schema.PlayerState{

@@ -100,6 +100,11 @@ func Tick(state GameState, inputs map[string]schema.InputPayload, dt float64) Ga
 						}
 						if other.Role == schema.RoleBase {
 							other.HeldTools = append(other.HeldTools, p.Tool)
+							// Clamp SelectedIdx in case it went out of range while HeldTools was empty.
+							// This ensures Left/Right cycling works immediately after a tool is returned.
+							if other.SelectedIdx >= len(other.HeldTools) {
+								other.SelectedIdx = len(other.HeldTools) - 1
+							}
 						} else {
 							other.Tool = p.Tool
 						}

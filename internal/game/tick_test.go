@@ -317,3 +317,95 @@ func TestTick_IncrementsTick(t *testing.T) {
 		t.Errorf("expected tick 6, got %d", next.Tick)
 	}
 }
+
+// TestTick_BaseCanSelectAfterToolReturnedSingle covers the case where BASE has one tool,
+// passes it to MID, MID returns it — BASE must still have a valid SelectedIdx (0) and
+// Left/Right cycling must not lock up (with a single tool cycling keeps index at 0).
+func TestTick_BaseCanSelectAfterToolReturnedSingle(t *testing.T) {
+	state := playingState(map[string]*game.Player{
+		"base": baseOp("base", schema.ToolWrench),
+		"mid":  climber("mid", 0, schema.ToolNone),
+	})
+
+	// Step 1: BASE passes wrench to MID (both at platform 0).
+	state = game.Tick(state, map[string]schema.InputPayload{
+		"base": {Keys: schema.InputKeys{Space: true}},
+	}, 1.0/30.0)
+	if len(state.Players["base"].HeldTools) != 0 {
+		t.Fatalf("base should have no tools after passing, got %v", state.Players["base"].HeldTools)
+	}
+	if state.Players["mid"].Tool != schema.ToolWrench {
+		t.Fatalf("mid should hold wrench, got %q", state.Players["mid"].Tool)
+	}
+
+	// Step 2: MID returns wrench to BASE at platform 0.
+	state = game.Tick(state, map[string]schema.InputPayload{
+		"mid": {Keys: schema.InputKeys{Space: true}},
+	}, 1.0/30.0)
+	if len(state.Players["base"].HeldTools) != 1 || state.Players["base"].HeldTools[0] != schema.ToolWrench {
+		t.Fatalf("base should have [wrench] after return, got %v", state.Players["base"].HeldTools)
+	}
+
+	// Step 3: SelectedIdx must be valid (within bounds) so Left/Right does not panic.
+	idx := state.Players["base"].SelectedIdx
+	if idx < 0 || idx >= len(state.Players["base"].HeldTools) {
+		t.Fatalf("SelectedIdx %d is out of bounds for HeldTools len %d", idx, len(state.Players["base"].HeldTools))
+	}
+
+	// Step 4: Pressing Right stays at 0 (only one tool — correct wrap-around).
+	state = game.Tick(state, map[string]schema.InputPayload{
+		"base": {Keys: schema.InputKeys{Right: true}},
+	}, 1.0/30.0)
+	if state.Players["base"].SelectedIdx != 0 {
+		t.Errorf("with 1 tool, SelectedIdx should stay 0 after Right, got %d", state.Players["base"].SelectedIdx)
+	}
+}
+
+// TestTick_BaseCanCycleAfterToolReturnedDouble covers the case where BASE has two tools
+// (wrench, hammer), passes one, receives it back, and can still Left/Right to pick either.
+func TestTick_BaseCanCycleAfterToolReturnedDouble(t *testing.T) {
+	state := playingState(map[string]*game.Player{
+		"base": baseOp("base", schema.ToolWrench, schema.ToolHammer),
+		"mid":  climber("mid", 0, schema.ToolNone),
+	})
+
+	// Step 1: BASE passes wrench (SelectedIdx=0).
+	state = game.Tick(state, map[string]schema.InputPayload{
+		"base": {Keys: schema.InputKeys{Space: true}},
+	}, 1.0/30.0)
+	if len(state.Players["base"].HeldTools) != 1 || state.Players["base"].HeldTools[0] != schema.ToolHammer {
+		t.Fatalf("base should hold [hammer] after passing wrench, got %v", state.Players["base"].HeldTools)
+	}
+
+	// Step 2: MID returns wrench — base now has [hammer, wrench].
+	state = game.Tick(state, map[string]schema.InputPayload{
+		"mid": {Keys: schema.InputKeys{Space: true}},
+	}, 1.0/30.0)
+	if len(state.Players["base"].HeldTools) != 2 {
+		t.Fatalf("base should have 2 tools after return, got %v", state.Players["base"].HeldTools)
+	}
+
+	// Step 3: SelectedIdx must be in-bounds.
+	idx := state.Players["base"].SelectedIdx
+	if idx < 0 || idx >= len(state.Players["base"].HeldTools) {
+		t.Fatalf("SelectedIdx %d out of bounds for len %d", idx, len(state.Players["base"].HeldTools))
+	}
+
+	// Step 4: Pressing Right must advance SelectedIdx (two tools — it should change).
+	prevIdx := state.Players["base"].SelectedIdx
+	state = game.Tick(state, map[string]schema.InputPayload{
+		"base": {Keys: schema.InputKeys{Right: true}},
+	}, 1.0/30.0)
+	if state.Players["base"].SelectedIdx == prevIdx {
+		t.Errorf("SelectedIdx should change on Right with 2 tools, stayed at %d", prevIdx)
+	}
+
+	// Step 5: Pressing Left wraps back.
+	prevIdx = state.Players["base"].SelectedIdx
+	state = game.Tick(state, map[string]schema.InputPayload{
+		"base": {Keys: schema.InputKeys{Left: true}},
+	}, 1.0/30.0)
+	if state.Players["base"].SelectedIdx == prevIdx {
+		t.Errorf("SelectedIdx should change on Left with 2 tools, stayed at %d", prevIdx)
+	}
+}
