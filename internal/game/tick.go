@@ -105,7 +105,19 @@ func Tick(state GameState, inputs map[string]schema.InputPayload, dt float64) Ga
 							continue
 						}
 						if other.Role == schema.RoleBase {
-							other.HeldTools = append(other.HeldTools, p.Tool)
+							// Guard: don't append a tool BASE already holds — prevents
+							// duplicates when the same tool exists in both BASE and MID
+							// (e.g. same-tick pass+return with certain map iteration order).
+							alreadyHeld := false
+							for _, t := range other.HeldTools {
+								if t == p.Tool {
+									alreadyHeld = true
+									break
+								}
+							}
+							if !alreadyHeld {
+								other.HeldTools = append(other.HeldTools, p.Tool)
+							}
 						} else {
 							if other.Tool != schema.ToolNone {
 								continue // target already has a tool, skip
