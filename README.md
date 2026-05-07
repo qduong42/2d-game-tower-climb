@@ -39,7 +39,9 @@ See `STATUS.md`.
 
 Please create issues with this format
 
+```
 [Given]: The initial state or context, such as pre-conditions.
 [When]: The specific action, event, or behavior carried out.
 [Then]: The expected result, consequence, or outcome.
 [And] / [But]: Used to add further steps to any of the three previous keywords.
+```
