@@ -35,7 +35,7 @@ export function showLobby(container: HTMLElement): Promise<LobbyResult> {
 
     container.innerHTML = `
       <div style="max-width:360px;margin:auto;padding:2rem;font-family:monospace;color:#e0e0e0">
-        <h1 style="margin-bottom:1rem;color:#ffd700;letter-spacing:0.05em">Tower Climb</h1>
+        <h1 style="margin-bottom:1rem;color:#ffd700;letter-spacing:0.05em">Turbine Repair</h1>
 
         <label style="display:block;margin-bottom:0.25rem">Room code</label>
         <div style="display:flex;gap:0.5rem;margin-bottom:0.5rem">
