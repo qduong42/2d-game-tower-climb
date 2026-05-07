@@ -91,7 +91,6 @@ async function main() {
 
   net.connect(roomCode, name, preferredColor, isPrivate);
   input.start(window);
-  window.addEventListener("keydown", () => { if (showInstructions) showInstructions = false; }, { capture: true });
 
   setInterval(() => {
     const inp = input.getInput(tick++);
@@ -122,10 +121,12 @@ async function main() {
       renderer.render(lastSnap, myId, boundaryHint);
 
       if (showInstructions) {
-        if (Date.now() - instructionsStart > 8000) {
+        const elapsed = Date.now() - instructionsStart;
+        if (elapsed > 30000) {
           showInstructions = false;
         } else {
-          renderer.drawInstructions(myRole, myClimberIndex);
+          const secsLeft = Math.ceil((30000 - elapsed) / 1000);
+          renderer.drawInstructions(myRole, myClimberIndex, secsLeft);
         }
       }
     }

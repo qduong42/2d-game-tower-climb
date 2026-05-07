@@ -388,7 +388,7 @@ export class CanvasRenderer {
     ctx.fillRect(0, 0, canvas.width, canvas.height);
   }
 
-  drawInstructions(role: string, climberIndex: number): void {
+  drawInstructions(role: string, climberIndex: number, secsLeft = 30): void {
     const { ctx, canvas } = this;
 
     ctx.fillStyle = "rgba(0,0,0,0.88)";
@@ -415,7 +415,7 @@ export class CanvasRenderer {
 
     ctx.fillStyle = "#555";
     ctx.font = "12px monospace";
-    ctx.fillText("Press any key to start", cx, canvas.height - 24);
+    ctx.fillText(`Disappears in ${secsLeft}s`, cx, canvas.height - 24);
   }
 
   private instructionLines(role: string, climberIndex: number): string[] {
