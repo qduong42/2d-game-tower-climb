@@ -34,3 +34,12 @@ See `docs/superpowers/specs/2026-05-06-rope-team-turbine-climb-design.md` for th
 ## Current milestone
 
 See `STATUS.md`.
+
+## Issues:
+
+Please create issues with this format
+
+[Given]: The initial state or context, such as pre-conditions.
+[When]: The specific action, event, or behavior carried out.
+[Then]: The expected result, consequence, or outcome.
+[And] / [But]: Used to add further steps to any of the three previous keywords.
