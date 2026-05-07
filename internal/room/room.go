@@ -192,10 +192,11 @@ func (r *Room) assignRoles() {
 
 	r.state.Players[ids[1]].Role = schema.RoleClimber
 	r.state.Players[ids[1]].ClimberIndex = 0
+	r.state.Players[ids[1]].Platform = game.MidMaxPlatform
 
 	r.state.Players[ids[2]].Role = schema.RoleClimber
 	r.state.Players[ids[2]].ClimberIndex = 1
-	r.state.Players[ids[2]].Platform = game.MidMaxPlatform // TOP starts at the handoff platform
+	r.state.Players[ids[2]].Platform = game.NumPlatforms - 1
 
 	r.state.Phase = schema.PhasePlaying
 }
