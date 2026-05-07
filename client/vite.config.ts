@@ -14,6 +14,7 @@ export default defineConfig({
           if (req.headers.upgrade !== "websocket") return req.url;
         },
       },
+      "/rooms": { target: "http://localhost:8080" },
     },
   },
 });
