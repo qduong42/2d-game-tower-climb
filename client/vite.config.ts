@@ -6,7 +6,7 @@ export default defineConfig({
   test: { include: ["src/tests/**/*.test.ts"] },
   server: {
     proxy: {
-      "/r": {
+      "/r/": {
         target: "http://localhost:8080",
         ws: true,
         bypass(req) {
