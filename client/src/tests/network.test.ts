@@ -5,20 +5,28 @@ import { MsgType } from "../schema";
 
 class FakeWS {
   onmessage: ((e: MessageEvent) => void) | null = null;
-  onclose: (() => void) | null = null;
+  onclose: ((ev: { code: number; reason: string }) => void) | null = null;
   onerror: (() => void) | null = null;
   onopen: (() => void) | null = null;
   sent: string[] = [];
   readyState = 1; // OPEN
 
   send(data: string) { this.sent.push(data); }
-  close() { this.readyState = 3; this.onclose?.(); }
+  close(code = 1000, reason = "") { this.readyState = 3; this.onclose?.({ code, reason }); }
 
   receive(payload: unknown) {
     this.onmessage?.({ data: JSON.stringify(payload) } as MessageEvent);
   }
 
-  simulateError() { this.onerror?.(); }
+  simulateError() {
+    this.onerror?.();
+    this.onclose?.({ code: 1006, reason: "" }); // browser always fires onclose after onerror
+  }
+
+  simulateRoomFull() {
+    this.onerror?.();
+    this.onclose?.({ code: 1008, reason: "room is full" });
+  }
 }
 
 describe("NetworkClient", () => {
@@ -120,5 +128,16 @@ describe("NetworkClient", () => {
     fakeWS.simulateError();
 
     expect(closeReason).toMatch(/error/i);
+  });
+
+  it("shows room-full message when server closes with policy violation", () => {
+    let closeReason: string | null = null;
+    client.onClose((r) => { closeReason = r; });
+
+    client.connect("ABCD", "alice", "#ff0000", "ws://localhost/r/ABCD");
+    fakeWS.onopen?.();
+    fakeWS.simulateRoomFull();
+
+    expect(closeReason).toMatch(/room full/i);
   });
 });

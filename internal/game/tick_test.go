@@ -110,17 +110,17 @@ func TestTick_BasePassesToolToMidOnSamePlatform(t *testing.T) {
 	}
 }
 
-func TestTick_BaseSelectsToolWithUpDown(t *testing.T) {
+func TestTick_BaseSelectsToolWithLeftRight(t *testing.T) {
 	state := playingState(map[string]*game.Player{
 		"base": baseOp("base", schema.ToolWrench, schema.ToolHammer),
 	})
-	// Press Up → SelectedIdx cycles from 0 to 1 (hammer)
-	next := game.Tick(state, map[string]schema.InputPayload{"base": {Keys: schema.InputKeys{Up: true}}}, 1.0/30.0)
+	// Press Right → SelectedIdx cycles from 0 to 1 (hammer)
+	next := game.Tick(state, map[string]schema.InputPayload{"base": {Keys: schema.InputKeys{Right: true}}}, 1.0/30.0)
 	if next.Players["base"].SelectedIdx != 1 {
 		t.Errorf("expected SelectedIdx 1, got %d", next.Players["base"].SelectedIdx)
 	}
-	// Press Down → cycles back to 0 (wrench)
-	next2 := game.Tick(next, map[string]schema.InputPayload{"base": {Keys: schema.InputKeys{Down: true}}}, 1.0/30.0)
+	// Press Left → cycles back to 0 (wrench)
+	next2 := game.Tick(next, map[string]schema.InputPayload{"base": {Keys: schema.InputKeys{Left: true}}}, 1.0/30.0)
 	if next2.Players["base"].SelectedIdx != 0 {
 		t.Errorf("expected SelectedIdx 0, got %d", next2.Players["base"].SelectedIdx)
 	}

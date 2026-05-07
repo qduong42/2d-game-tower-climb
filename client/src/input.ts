@@ -43,6 +43,8 @@ export class InputHandler {
     });
   }
 
+  peekKeys(): typeof this.keys { return { ...this.keys }; }
+
   getInput(tick: number): InputPayload {
     const inp: InputPayload = { tick, keys: { ...this.keys }, mouse: this.mouse ?? undefined };
     this.mouse = null;

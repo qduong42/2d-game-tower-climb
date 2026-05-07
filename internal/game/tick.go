@@ -32,25 +32,28 @@ func Tick(state GameState, inputs map[string]schema.InputPayload, dt float64) Ga
 		prev := p.PrevKeys
 
 		if p.Role == schema.RoleClimber {
-			// MID capped at MidMaxPlatform; TOP goes to NumPlatforms-1
+			// MID: platforms 0–MidMaxPlatform; TOP: platforms MidMaxPlatform–NumPlatforms-1
 			maxPlatform := NumPlatforms - 1
+			minPlatform := 0
 			if p.ClimberIndex == 0 {
 				maxPlatform = MidMaxPlatform
+			} else {
+				minPlatform = MidMaxPlatform
 			}
 			if inp.Keys.Up && !prev.Up && p.Platform < maxPlatform {
 				p.Platform++
 			}
-			if inp.Keys.Down && !prev.Down && p.Platform > 0 {
+			if inp.Keys.Down && !prev.Down && p.Platform > minPlatform {
 				p.Platform--
 			}
 		}
 
 		if p.Role == schema.RoleBase && len(p.HeldTools) > 0 {
 			// Up/Down cycles the selected tool (rising edge)
-			if inp.Keys.Up && !prev.Up {
+			if inp.Keys.Right && !prev.Right {
 				p.SelectedIdx = (p.SelectedIdx + 1) % len(p.HeldTools)
 			}
-			if inp.Keys.Down && !prev.Down {
+			if inp.Keys.Left && !prev.Left {
 				p.SelectedIdx = (p.SelectedIdx - 1 + len(p.HeldTools)) % len(p.HeldTools)
 			}
 		}

@@ -98,7 +98,17 @@ async function main() {
     }
 
     if (lastSnap) {
-      renderer.render(lastSnap, myId);
+      const me = lastSnap.players.find(p => p.id === myId);
+      let boundaryHint = "";
+      if (me?.role === "climber") {
+        const keys = input.peekKeys();
+        if (me.climberIndex === 0 && keys.up && me.platform === 3) {
+          boundaryHint = "You are only responsible for Ground → Floor 3!";
+        } else if (me.climberIndex === 1 && keys.down && me.platform === 3) {
+          boundaryHint = "You are only responsible for Floor 3 → Top!";
+        }
+      }
+      renderer.render(lastSnap, myId, boundaryHint);
     }
 
     requestAnimationFrame(frame);

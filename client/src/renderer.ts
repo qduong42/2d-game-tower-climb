@@ -1,7 +1,7 @@
 import type { PlayerState, SnapshotPayload } from "./schema";
 
 const NUM_PLATFORMS = 7;
-const MID_MAX_PLATFORM = NUM_PLATFORMS / 2; // = 3, the handoff platform
+const MID_MAX_PLATFORM = Math.floor(NUM_PLATFORMS / 2); // = 3, the handoff platform
 const PLATFORM_Y = [540, 460, 380, 300, 220, 140, 60]; // platform 0–6, bottom to top
 const PLAYER_RADIUS = 14;
 const PLATFORM_W = 100;
@@ -14,7 +14,7 @@ export class CanvasRenderer {
     this.ctx = canvas.getContext("2d")!;
   }
 
-  render(snap: SnapshotPayload, myId: string): void {
+  render(snap: SnapshotPayload, myId: string, boundaryHint = ""): void {
     this.clear();
 
     if (snap.phase === "waiting") return; // status text handled by main.ts
@@ -25,7 +25,7 @@ export class CanvasRenderer {
     if (me.role === "base") {
       this.renderBaseView(snap, me);
     } else {
-      this.renderClimberView(snap, me);
+      this.renderClimberView(snap, me, boundaryHint);
     }
 
     if (snap.phase === "won") {
@@ -35,7 +35,7 @@ export class CanvasRenderer {
 
   // ── Climber view: own column centered ─────────────────────────────────────
 
-  private renderClimberView(snap: SnapshotPayload, me: PlayerState): void {
+  private renderClimberView(snap: SnapshotPayload, me: PlayerState, boundaryHint = ""): void {
     const { ctx, canvas } = this;
 
     this.drawColumn(COL_X);
@@ -94,6 +94,14 @@ export class CanvasRenderer {
         ctx.textAlign = "center";
         ctx.fillText("Press SPACE to return tool to BASE ↓", canvas.width / 2, canvas.height - 20);
       }
+    }
+
+    // Boundary hint (shown when player presses the blocked direction)
+    if (boundaryHint) {
+      ctx.fillStyle = "#e74c3c";
+      ctx.font = "bold 13px monospace";
+      ctx.textAlign = "center";
+      ctx.fillText(boundaryHint, canvas.width / 2, 76);
     }
 
     // SPACE hint — DOWN: TOP at handoff returns tool to MID
@@ -175,7 +183,7 @@ export class CanvasRenderer {
       ctx.fillStyle = "#556";
       ctx.font = "10px monospace";
       ctx.textAlign = "center";
-      ctx.fillText("↑/↓ to select", W / 2, toolBoxY + toolBoxH + 14);
+      ctx.fillText("←/→ to select", W / 2, toolBoxY + toolBoxH + 14);
     }
 
     // Divider

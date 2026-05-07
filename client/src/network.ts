@@ -70,21 +70,26 @@ export class NetworkClient {
         clearTimeout(this.welcomeTimer);
         this.welcomeTimer = null;
       }
-      if (!this.closeReported) {
-        this.closeReported = true;
-        this.onCloseCb?.("Connection error — check server is running");
-      }
+      // Don't report here — onclose always fires after onerror and has the close reason.
     };
 
-    this.ws.onclose = () => {
-      console.warn("[network] connection closed");
+    this.ws.onclose = (ev) => {
+      console.warn("[network] connection closed", ev.code, ev.reason);
       if (this.welcomeTimer !== null) {
         clearTimeout(this.welcomeTimer);
         this.welcomeTimer = null;
       }
       if (!this.closeReported) {
         this.closeReported = true;
-        this.onCloseCb?.("Disconnected");
+        let reason: string;
+        if (ev.reason === "room is full") {
+          reason = "Room full — try a different room code";
+        } else if (ev.code === 1006 || ev.code === 1001) {
+          reason = "Connection error — check server is running";
+        } else {
+          reason = "Disconnected";
+        }
+        this.onCloseCb?.(reason);
       }
     };
   }
